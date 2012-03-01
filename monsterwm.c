@@ -746,6 +746,7 @@ void setup(void) {
               PropModeReplace, (unsigned char *)netatoms, NET_COUNT);
 
     grabkeys();
+    change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
 }
 
 void sigchld() {
