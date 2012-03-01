@@ -86,6 +86,7 @@ static void change_monitor(const Arg *arg);
 static void client_to_desktop(const Arg *arg);
 static void client_to_monitor(const Arg *arg);
 static void killclient();
+static void last_desktop();
 static void move_down();
 static void move_up();
 static void moveresize(const Arg *arg);
@@ -145,7 +146,7 @@ typedef struct {
  * desktops    - the desktops handled by the monitor
  */
 typedef struct Monitor {
-    int x, y, h, w, currdeskidx;
+    int x, y, h, w, currdeskidx, prevdeskidx;
     Desktop desktops[DESKTOPS];
 } Monitor;
 
@@ -284,7 +285,7 @@ void buttonpress(XEvent *e) {
 void change_desktop(const Arg *arg) {
     Monitor *m = &monitors[currmonidx];
     if (arg->i == m->currdeskidx || arg->i < 0 || arg->i >= DESKTOPS) return;
-    Desktop *d = &m->desktops[m->currdeskidx], *n = &m->desktops[(m->currdeskidx = arg->i)];
+    Desktop *d = &m->desktops[(m->prevdeskidx = m->currdeskidx)], *n = &m->desktops[(m->currdeskidx = arg->i)];
     for (Client *c = n->head; c; c = c->next) MV(c, c->x - off_x, c->y - off_y);
     if (n->head) { tile(n, m); focus(n->curr, n, m); }
     for (Client *c = d->head; c; c = c->next) MV(c, c->x + off_x, c->y + off_y);
@@ -724,6 +725,13 @@ void killclient(void) {
     if (n < 0) { XKillClient(dis, d->curr->win); removeclient(d->curr, d, m); }
     else deletewindow(d->curr->win);
     if (prot) XFree(prot);
+}
+
+/**
+ * focus the previously focused desktop
+ */
+void last_desktop(void) {
+    change_desktop(&(Arg){.i = monitors[currmonidx].prevdeskidx});
 }
 
 /**
