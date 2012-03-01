@@ -115,6 +115,7 @@ static void desktopinfo(void);
 static void destroynotify(XEvent *e);
 static void enternotify(XEvent *e);
 static void focusin(XEvent *e);
+static void focusurgent();
 static unsigned long getcolor(const char* color);
 static void grabbuttons(client *c);
 static void grabkeys(void);
@@ -362,6 +363,12 @@ void enternotify(XEvent *e) {
  * highlighted client - this gives focus back */
 void focusin(XEvent *e) {
     if (current && current->win != e->xfocus.window) update_current(current);
+}
+
+/* find and focus the client which received
+ * the urgent hint in the current desktop */
+void focusurgent(void) {
+    for (client *c=head; c; c=c->next) if (c->isurgent) update_current(c);
 }
 
 /* get a pixel with the requested color
