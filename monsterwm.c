@@ -20,6 +20,16 @@
 /* wrapper to automatically move/resize windows used by multi-monitor branch */
 #define XMVRSZ(dis, win, x, y, w, h) XMoveResizeWindow(dis, win, 0 + (x), 0 + (y), w, h)
 
+/* multi-monitor macros && headers */
+#ifdef XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+
+/* wrapper for XMoveResizeWindow,
+ * does magic automatically for current monitor */
+#define _XMoveResizeWindow(dis, win, x, y, w, h) \
+    XMoveResizeWindow(dis, win, wx + (x), wy + (y), w, h)
+
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, BSTACK, GRID, FLOAT, MODES };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
@@ -77,6 +87,7 @@ typedef struct client {
     struct client *next;
     Bool isurgent, istransient, isfullscrn, isfloating;
     Window win;
+    int monitor;
 } client;
 
 /* properties of each desktop
@@ -162,7 +173,25 @@ static client* wintoclient(Window w);
 static int xerror(Display *dis, XErrorEvent *ee);
 static int xerrorstart();
 
+/* multi-monitor functions */
+static void xinerama_magic(void);
+static void save_monitor(int i);
+static void select_monitor(int i);
+static void change_monitor(const Arg *arg);
+
 #include "config.h"
+
+/* properties of each monitor */
+typedef struct {
+   int current_desktop, previous_desktop;
+   int wh, ww, wx, wy;
+   desktop desktops[DESKTOPS];
+} monitor;
+
+/* global variables needed for multi-monitor support */
+static int previous_monitor = 0, current_monitor = 0, MONITORS = 0;
+static int wx, wy;
+static monitor *monitors;
 
 static Bool running = True, showpanel = SHOW_PANEL;
 static int previous_desktop = 0, current_desktop = 0, retval = 0;
@@ -173,7 +202,7 @@ static Display *dis;
 static Window root;
 static client *head, *prevfocus, *current;
 static Atom wmatoms[WM_COUNT], netatoms[NET_COUNT];
-static desktop desktops[DESKTOPS];
+static desktop *desktops;
 
 /* events array - on new event, call the appropriate handling function */
 static void (*events[LASTEvent])(XEvent *e) = {
@@ -201,6 +230,7 @@ client* addwindow(Window w) {
     else if (!ATTACH_ASIDE) { c->next = head; head = c; }
     else if (t) t->next = c; else head->next = c;
 
+    c->monitor = current_monitor;
     XSelectInput(dis, (c->win = w), PropertyChangeMask|FocusChangeMask|(FOLLOW_MOUSE?EnterWindowMask:0));
     return c;
 }
@@ -779,7 +809,8 @@ void setup(void) {
 
     ww = XDisplayWidth(dis,  screen);
     wh = XDisplayHeight(dis, screen) - PANEL_HEIGHT;
-    for (unsigned int i=0; i<DESKTOPS; i++) save_desktop(i);
+
+    // for (unsigned int i=0; i<DESKTOPS; i++) save_desktop(i);
 
     win_focus = getcolor(FOCUS);
     win_unfocus = getcolor(UNFOCUS);
@@ -809,6 +840,7 @@ void setup(void) {
     XChangeProperty(dis, root, netatoms[NET_SUPPORTED], XA_ATOM, 32,
               PropModeReplace, (unsigned char *)netatoms, NET_COUNT);
 
+    xinerama_magic();
     grabkeys();
     change_desktop(&(Arg){.i = DEFAULT_DESKTOP});
 }
@@ -1016,4 +1048,100 @@ int main(int argc, char *argv[]) {
     cleanup();
     XCloseDisplay(dis);
     return retval;
+}
+
+/** multi-monitor functions **/
+
+/* initializes the monitor's parameters */
+static void setup_monitor(int i, int x, int y, int w, int h) {
+    ww = w; wh = h;
+    wx = x; wy = y;
+    desktops = monitors[i].desktops;
+
+    for (int d=0; d<DESKTOPS; ++d) save_desktop(d);
+    save_monitor(i);
+
+    printf("%d: %dx%d+%d,%d\n", i, w, h, x, y);
+}
+
+/* xinerama setup fallback */
+static void xinerama_fallback(void) {
+    MONITORS = 1;
+    setup_monitor(0, 0, 0, ww, wh);
+}
+
+/* does all the xinerama magic */
+void xinerama_magic(void) {
+#ifdef XINERAMA
+    int i;
+    XineramaScreenInfo *info = NULL;
+    if (XineramaIsActive(dis))
+        info = XineramaQueryScreens(dis, &MONITORS);
+#endif
+
+    if (!(monitors = calloc(MONITORS?MONITORS:1, sizeof(monitor))))
+        errx(EXIT_FAILURE, "not enough memory for monitors");
+
+    /* either not compiled with Xinerama,
+     * or we got 0 monitors */
+    if (!MONITORS) {
+        xinerama_fallback();
+        return;
+    }
+
+#ifdef XINERAMA
+    for (i = 0; i != MONITORS; ++i)
+        setup_monitor(i, info[i].x_org, info[i].y_org,
+                info[i].width, info[i].height);
+
+    current_monitor = -1;
+    change_monitor(&(Arg){.i = DEFAULT_MONITOR});
+#endif
+}
+
+/* return which monitor area belongs */
+int areatomonitor(int x, int y) {
+    for (int m=0; m<MONITORS; m++)
+        if (monitors[m].wx < x && (monitors[m].wx + monitors[m].ww) > x &&
+            monitors[m].wy < y && (monitors[m].wy + monitors[m].wh) > y)
+            return m;
+    return current_monitor;
+}
+
+/* does currently nothing, is here for future */
+void save_monitor(int i) {
+    if (i < 0 || i >= MONITORS) return;
+    monitors[i].current_desktop  = current_desktop;
+    monitors[i].previous_desktop = previous_desktop;
+    monitors[i].ww = ww;
+    monitors[i].wh = wh;
+    monitors[i].wx = wx;
+    monitors[i].wy = wy;
+}
+
+/* set the specified monitor's properties */
+void select_monitor(int i) {
+    if (i < 0 || i >= MONITORS) return;
+    save_desktop(current_desktop);
+    save_monitor(current_monitor);
+    desktops         = monitors[i].desktops;
+    current_desktop  = monitors[i].current_desktop;
+    previous_desktop = monitors[i].previous_desktop;
+    ww               = monitors[i].ww;
+    wh               = monitors[i].wh;
+    wx               = monitors[i].wx;
+    wy               = monitors[i].wy;
+    current_monitor  = i;
+}
+
+/* focus another monitor */
+void change_monitor(const Arg *arg) {
+    int tmp;
+    if (arg->i == current_monitor) return;
+    previous_monitor = current_monitor;
+    select_monitor(arg->i);
+    tmp = current_desktop; current_desktop = -1;
+    select_desktop(tmp);
+    tile(); update_current(current);
+    desktopinfo();
 }

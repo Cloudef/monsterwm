@@ -26,6 +26,10 @@
 #define DEFAULT_DESKTOP 0         /* the desktop to focus on exec */
 #define MINWSZ          50        /* minimum window size in pixels */
 
+/** multi-monitor settings **/
+#define FOLLOW_MONITOR  1         /* Focus monitor when mouse enters area */
+#define DEFAULT_MONITOR 0
+
 /* open applications to specified desktop with specified mode.
  * if desktop is negative, then current is assumed */
 static const AppRule rules[] = { \
@@ -44,6 +48,9 @@ static const char *menucmd[] = { "dmenu_run", NULL };
 #define DESKTOPCHANGE(K,N) \
     {  MOD1,             K,              change_desktop, {.i = N}}, \
     {  MOD1|ShiftMask,   K,              client_to_desktop, {.i = N}},
+
+#define MONITORCHANGE(K,N) \
+    {  MOD4,             K,              change_monitor, {.i = N}},
 
 /** Shortcuts **/
 static key keys[] = {
@@ -86,6 +93,10 @@ static key keys[] = {
        DESKTOPCHANGE(    XK_F2,                             1)
        DESKTOPCHANGE(    XK_F3,                             2)
        DESKTOPCHANGE(    XK_F4,                             3)
+
+    /* monitor shortcuts */
+       MONITORCHANGE(    XK_F1,                             0)
+       MONITORCHANGE(    XK_F2,                             1)
 };
 
 static Button buttons[] = {
