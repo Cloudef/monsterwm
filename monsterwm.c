@@ -729,7 +729,7 @@ void removeclient(client *c) {
     client **p = NULL;
     Bool found = False;
     int m = 0, cm = current_monitor, nd = 0, cd = 0;
-    for (; m<MONITORS; m++) {
+    for (; m<MONITORS && !found; m++) {
         for (select_monitor(m), nd = 0, cd = current_desktop; nd<DESKTOPS && !found; nd++)
             for (select_desktop(nd), p = &head; *p && !(found = *p == c); p = &(*p)->next);
         if (cd != nd-1 && !found) select_desktop(cd);
@@ -738,9 +738,10 @@ void removeclient(client *c) {
     if (c == prevfocus) prevfocus = prev_client(current);
     if (c == current || !head->next) update_current(prevfocus);
     free(c); c = NULL;
-    if (cd == nd -1) tile(); else {
+    if (cm == m -1 && cd == nd -1) tile(); else {
         select_desktop(cd);
         select_monitor(cm);
+        if (cm != m -1) tile();
     }
 }
 
