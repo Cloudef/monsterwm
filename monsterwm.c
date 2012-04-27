@@ -747,7 +747,7 @@ void removeclient(client *c) {
     *p = c->next;
     if (c == prevfocus) prevfocus = prev_client(current);
     if (c == current || (head && !head->next)) update_current(prevfocus);
-    if (cd != nd) {
+    if (cm != nm || cd != nd) {
         select_monitor(cm);
         select_desktop(cd);
     } else if (!c->isfloating && !c->istransient) tile();
