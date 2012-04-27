@@ -17,7 +17,7 @@ INCS = -I. -I/usr/include -I${X11INC} ${XINERAMA}
 LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIB}
 
 CFLAGS   = -std=c99 -pedantic -Wall -Wextra -Os -g ${INCS} ${CPPFLAGS} -DVERSION=\"${VERSION}\"
-LDFLAGS  = ${LIBS}
+LDFLAGS  = -g ${LIBS}
 
 CC 	 = cc
 EXEC = ${WMNAME}
