@@ -174,8 +174,10 @@ static int xerrorstart();
 
 /* multi-monitor functions */
 static void xinerama_magic(void);
+int areatomonitor(int x, int y);
 static void save_monitor(int i);
 static void select_monitor(int i);
+static void client_to_monitor(const Arg *arg);
 static void change_monitor(const Arg *arg);
 
 #include "config.h"
@@ -537,6 +539,7 @@ void maprequest(XEvent *e) {
  * Ungrab the poitner and event handling is passed back to run() function.
  * Once a window has been moved or resized, it's marked as floating. */
 void mousemotion(const Arg *arg) {
+    int monitor;
     if (!current) return;
     static XWindowAttributes wa;
     XGetWindowAttributes(dis, current->win, &wa);
@@ -563,7 +566,13 @@ void mousemotion(const Arg *arg) {
                 yh = (arg->i == MOVE ? wa.y:wa.height) + ev.xmotion.y - y;
                 if (arg->i == RESIZE) XResizeWindow(dis, current->win,
                    xw>MINWSZ ? xw:wa.width, yh>MINWSZ ? yh:wa.height);
-                else if (arg->i == MOVE) XMoveWindow(dis, current->win, xw, yh);
+                else if (arg->i == MOVE) {
+                    XMoveWindow(dis, current->win, xw, yh);
+                    if ((monitor = areatomonitor(xw, yh)) != current_monitor) {
+                        client_to_monitor(&(Arg){.i = monitor});
+                        select_monitor(monitor);
+                    }
+                }
                 break;
         }
     } while(ev.type != ButtonRelease);
@@ -1137,6 +1146,31 @@ void select_monitor(int i) {
     showpanel       = desktops[current_desktop].showpanel;
     prevfocus       = desktops[current_desktop].prevfocus;
     current_monitor = i;
+}
+
+/* move a client to another monitor
+ *
+ * remove the current client from the monitor's desktop
+ * and add it as last client of the new monitor's desktop */
+void client_to_monitor(const Arg *arg) {
+    if (!current || arg->i == current->monitor) return;
+    int cm = current_monitor;
+    client *p = prev_client(current), *c = current;
+
+    select_monitor(arg->i);
+    client *l = prev_client(head);
+    update_current(l ? (l->next = c):head ? (head->next = c):(head = c));
+    c->monitor = arg->i;
+    tile();
+
+    select_monitor(cm);
+    if (c == head || !p) head = c->next; else p->next = c->next;
+    c->next = NULL;
+    update_current(prevfocus);
+    tile();
+
+    if (FOLLOW_WINDOW) change_monitor(arg); else tile();
+    desktopinfo();
 }
 
 /* focus another monitor */
