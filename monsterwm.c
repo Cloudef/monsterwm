@@ -1136,12 +1136,19 @@ void select_monitor(int i) {
 
 /* focus another monitor */
 void change_monitor(const Arg *arg) {
-    int tmp;
     if (arg->i == current_monitor) return;
     previous_monitor = current_monitor;
     select_monitor(arg->i);
-    tmp = current_desktop; current_desktop = -1;
-    select_desktop(tmp);
+    /* select desktop, here would overrite the
+     * real desktop with save_desktop, workaround,
+     * by reimplentint select_desktop without saving. */
+    master_size     = desktops[current_desktop].master_size;
+    mode            = desktops[current_desktop].mode;
+    growth          = desktops[current_desktop].growth;
+    head            = desktops[current_desktop].head;
+    current         = desktops[current_desktop].current;
+    showpanel       = desktops[current_desktop].showpanel;
+    prevfocus       = desktops[current_desktop].prevfocus;
     tile(); update_current(current);
     desktopinfo();
 }
