@@ -1128,8 +1128,8 @@ void motionnotify(XEvent *e) {
 int areatomonitor(int x, int y) {
     for (int c=0; c<2; ++c)
         for (int m=0; m<MONITORS; ++m)
-            if ((c == 2 || monitors[m].wx < x && (monitors[m].wx + monitors[m].ww) > x) &&
-                (c == 1 || monitors[m].wy < y && (monitors[m].wy + monitors[m].wh) > y))
+            if ((c == 2 || (monitors[m].wx < x && (monitors[m].wx + monitors[m].ww) > x)) &&
+                (c == 1 || (monitors[m].wy < y && (monitors[m].wy + monitors[m].wh) > y)))
                 return m;
     return current_monitor;
 }
