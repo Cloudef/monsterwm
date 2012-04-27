@@ -1115,9 +1115,10 @@ void motionnotify(XEvent *e) {
         change_monitor(&(Arg){.i = m});
 }
 
-/* return which monitor area belongs,
- * checks two times, at first check try check accurately,
- * second time check without using height, third time without using width */
+/* return which monitor area belongs.
+ * first try check accurately,
+ * next check without using height,
+ * then without using width */
 int areatomonitor(int x, int y) {
     for (int c=0; c<2; ++c)
         for (int m=0; m<MONITORS; ++m)
@@ -1151,9 +1152,9 @@ void select_monitor(int i) {
     wx               = monitors[i].wx;
     wy               = monitors[i].wy;
 
-    /* select desktop, here would overrite the
-     * real desktop with save_desktop, workaround,
-     * by reimplentint select_desktop without saving. */
+    /* using select desktop here would overwrite the
+     * real desktop with save_desktop. Workaround by
+     * reimplementing select_desktop without saving. */
     master_size     = desktops[current_desktop].master_size;
     mode            = desktops[current_desktop].mode;
     growth          = desktops[current_desktop].growth;
@@ -1164,7 +1165,7 @@ void select_monitor(int i) {
     current_monitor = i;
 }
 
-/* jump and focus the next or previous montior */
+/* jump and focus the next or previous monitor */
 void rotate_monitor(const Arg *arg) {
     change_monitor(&(Arg){.i = (MONITORS + current_monitor + arg->i) % MONITORS});
 }
