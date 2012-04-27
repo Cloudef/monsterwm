@@ -359,6 +359,7 @@ void deletewindow(Window w) {
  * the info is a list of ':' separated values for each desktop
  * desktop to desktop info is separated by ' ' single spaces
  * the info values are
+ *   the monitor number/id
  *   the desktop number/id
  *   the desktop's client count
  *   the desktop's tiling layout mode/id
@@ -368,13 +369,16 @@ void deletewindow(Window w) {
  * once the info is collected, immediately flush the stream */
 void desktopinfo(void) {
     Bool urgent = False;
-    int cd = current_desktop, n=0, nd=-1;
-    for (client *c; nd<DESKTOPS-1;) {
-        for (select_desktop(++nd), c=head, n=0, urgent=False; c; c=c->next, ++n) if (c->isurgent) urgent = True;
-        fprintf(stdout, "%d:%d:%d:%d:%d%c", nd, n, mode, current_desktop == cd, urgent, nd==DESKTOPS-1?'\n':' ');
+    int cm = current_monitor, nm=-1, cd=0, n=0, nd=-1;
+    for (client *c; nm<MONITORS-1;) {
+        for (select_monitor(++nm), nd=-1, cd=current_desktop; nd<DESKTOPS-1;) {
+            for (select_desktop(++nd), c=head, n=0, urgent=False; c; c=c->next, ++n) if (c->isurgent) urgent = True;
+            fprintf(stdout, "%d:%d:%d:%d:%d:%d%c", nm, nd, n, mode, current_desktop == cd, urgent, (nm==MONITORS-1 && nd==DESKTOPS-1)?'\n':' ');
+        }
+        if (cd != nd) select_desktop(cd);
     }
+    if (cm != nm) select_monitor(cm);
     fflush(stdout);
-    if (cd != nd) select_desktop(cd);
 }
 
 /* a destroy notification is received when a window is being closed
@@ -718,13 +722,19 @@ void quit(const Arg *arg) {
  * else if c was the current one, current must be updated. */
 void removeclient(client *c) {
     client **p = NULL;
-    int nd = -1, cd = current_desktop;
-    for (Bool found = False; nd<DESKTOPS-1 && !found;)
-        for (select_desktop(++nd), p = &head; *p && !(found = *p == c); p = &(*p)->next);
+    int cm = current_monitor, nm=-1, cd=0, nd=-1;
+    for (Bool found = False; nm<MONITORS-1;) {
+        for (select_monitor(++nm), nd=-1, cd = current_desktop; nd<DESKTOPS-1 && !found;)
+            for (select_desktop(++nd), p = &head; *p && !(found = *p == c); p = &(*p)->next);
+        if (cd != nd && !found) select_desktop(cd);
+    }
     *p = c->next;
     if (c == prevfocus) prevfocus = prev_client(current);
     if (c == current || (head && !head->next)) update_current(prevfocus);
-    if (cd != nd) select_desktop(cd); else if (!c->isfloating && !c->istransient) tile();
+    if (cd != nd) {
+        select_monitor(cm);
+        select_desktop(cd);
+    } else if (!c->isfloating && !c->istransient) tile();
     free(c); c = NULL;
 }
 
@@ -1012,10 +1022,13 @@ void update_current(client *c) {
 /* find to which client the given window belongs to */
 client* wintoclient(Window w) {
     client *c = NULL;
-    int nd = -1, cd = current_desktop;
-    for (Bool found = False; nd<DESKTOPS-1 && !found;)
-        for (select_desktop(++nd), c=head; c && !(found = (w == c->win)); c=c->next);
-    if (cd != nd) select_desktop(cd);
+    int cm = current_monitor, nm=-1, cd=0, nd=-1;
+    for (Bool found = False; nm<MONITORS-1;) {
+        for (select_monitor(++nm), nd=-1, cd = current_desktop; nd<DESKTOPS-1 && !found;)
+            for (select_desktop(++nd), c=head; c && !(found = (w == c->win)); c=c->next);
+        if (cd != nd) select_desktop(cd);
+    }
+    if (cm != nm) select_monitor(cm);
     return c;
 }
 
@@ -1131,14 +1144,7 @@ void select_monitor(int i) {
     wh               = monitors[i].wh;
     wx               = monitors[i].wx;
     wy               = monitors[i].wy;
-    current_monitor  = i;
-}
 
-/* focus another monitor */
-void change_monitor(const Arg *arg) {
-    if (arg->i == current_monitor) return;
-    previous_monitor = current_monitor;
-    select_monitor(arg->i);
     /* select desktop, here would overrite the
      * real desktop with save_desktop, workaround,
      * by reimplentint select_desktop without saving. */
@@ -1149,6 +1155,14 @@ void change_monitor(const Arg *arg) {
     current         = desktops[current_desktop].current;
     showpanel       = desktops[current_desktop].showpanel;
     prevfocus       = desktops[current_desktop].prevfocus;
+    current_monitor = i;
+}
+
+/* focus another monitor */
+void change_monitor(const Arg *arg) {
+    if (arg->i == current_monitor) return;
+    previous_monitor = current_monitor;
+    select_monitor(arg->i);
     tile(); update_current(current);
     desktopinfo();
 }
