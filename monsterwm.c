@@ -1210,7 +1210,6 @@ void client_to_monitor(const Arg *arg) {
     if (c == head || !p) head = c->next; else p->next = c->next;
     c->next = NULL;
     update_current(prevfocus);
-    tile();
 
     if (FOLLOW_WINDOW) change_monitor(arg); else tile();
     desktopinfo();
