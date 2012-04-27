@@ -1069,7 +1069,7 @@ int main(int argc, char *argv[]) {
 
 /* initializes the monitor's parameters */
 static void setup_monitor(int i, int x, int y, int w, int h) {
-    ww = w; wh = h;
+    ww = w; wh = h - PANEL_HEIGHT;
     wx = x; wy = y;
     desktops = monitors[i].desktops;
 
