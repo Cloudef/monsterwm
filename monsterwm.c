@@ -859,7 +859,7 @@ void setup(void) {
     xerrorxlib = XSetErrorHandler(xerrorstart);
     XSelectInput(dis, DefaultRootWindow(dis), SubstructureRedirectMask|ButtonPressMask|
                                               SubstructureNotifyMask|PropertyChangeMask|
-                                              (FOLLOW_MOUSE?PointerMotionMask:0));
+                                              (FOLLOW_MONITOR?PointerMotionMask:0));
     XSync(dis, False);
 
     XSetErrorHandler(xerror);
