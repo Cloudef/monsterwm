@@ -236,7 +236,7 @@ client* addwindow(Window w) {
     else if (t) t->next = c; else head->next = c;
 
     c->monitor = current_monitor;
-    XSelectInput(dis, (c->win = w), PropertyChangeMask|FocusChangeMask|(FOLLOW_MOUSE?EnterWindowMask:0));
+    XSelectInput(dis, (c->win = w), PropertyChangeMask|FocusChangeMask|(FOLLOW_MONITOR?EnterWindowMask:0));
     return c;
 }
 
@@ -1132,7 +1132,7 @@ void xinerama_magic(void) {
 /* motion notify event */
 void motionnotify(XEvent *e) {
     int m;
-    if (FOLLOW_MOUSE &&
+    if (FOLLOW_MONITOR &&
        (m = areatomonitor(e->xmotion.x_root, e->xmotion.y_root)) != current_monitor)
         change_monitor(&(Arg){.i = m});
 }
