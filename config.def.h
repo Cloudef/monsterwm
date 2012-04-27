@@ -30,12 +30,12 @@
 #define FOLLOW_MONITOR  1         /* Focus monitor when mouse enters area */
 #define DEFAULT_MONITOR 0
 
-/* open applications to specified desktop with specified mode.
- * if desktop is negative, then current is assumed */
+/* open applications to specified monitor/desktop with specified mode.
+ * if monitor/desktop is negative, then current is assumed */
 static const AppRule rules[] = { \
-    /*  class     desktop  follow  float */
-    { "MPlayer",     3,    True,   False },
-    { "Gimp",        0,    False,  True  },
+    /*  class     monitor  desktop  follow  float */
+    { "MPlayer",      0,      3,    True,   False },
+    { "Gimp",        -1,      0,    False,  True  },
 };
 
 /* helper for spawning shell commands */
@@ -97,6 +97,8 @@ static key keys[] = {
        DESKTOPCHANGE(    XK_F4,                             3)
 
     /* monitor shortcuts */
+    {  MOD4|CONTROL,     XK_h,          rotate_monitor,    {.i = -1}},
+    {  MOD4|CONTROL,     XK_l,          rotate_monitor,    {.i = +1}},
        MONITORCHANGE(    XK_F1,                             0)
        MONITORCHANGE(    XK_F2,                             1)
 };

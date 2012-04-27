@@ -114,7 +114,7 @@ typedef struct {
  */
 typedef struct {
     const char *class;
-    const int desktop;
+    const int monitor, desktop;
     const Bool follow, floating;
 } AppRule;
 
@@ -174,10 +174,12 @@ static int xerror(Display *dis, XErrorEvent *ee);
 static int xerrorstart();
 
 /* multi-monitor functions */
+static void motionnotify(XEvent *e);
 static void xinerama_magic(void);
-int areatomonitor(int x, int y);
+static int areatomonitor(int x, int y);
 static void save_monitor(int i);
 static void select_monitor(int i);
+static void rotate_monitor(const Arg *arg);
 static void client_to_monitor(const Arg *arg);
 static void change_monitor(const Arg *arg);
 
@@ -213,6 +215,7 @@ static void (*events[LASTEvent])(XEvent *e) = {
     [ButtonPress]      = buttonpress,  [DestroyNotify]  = destroynotify,
     [UnmapNotify]      = unmapnotify,  [PropertyNotify] = propertynotify,
     [ConfigureRequest] = configurerequest,    [FocusIn] = focusin,
+    [MotionNotify]     = motionnotify,
 };
 
 /* layout array - given the current layout mode, tile the windows
@@ -362,6 +365,7 @@ void deletewindow(Window w) {
  * desktop to desktop info is separated by ' ' single spaces
  * the info values are
  *   the monitor number/id
+ *   whether the monitor is the current focused (1) or not (0)
  *   the desktop number/id
  *   the desktop's client count
  *   the desktop's tiling layout mode/id
@@ -371,11 +375,12 @@ void deletewindow(Window w) {
  * once the info is collected, immediately flush the stream */
 void desktopinfo(void) {
     Bool urgent = False;
-    int cm = current_monitor, nm=-1, cd=0, n=0, nd=-1;
+    int cm = current_monitor, nm=-1, cd=0, nd=-1, n=0;
     for (client *c; nm<MONITORS-1;) {
         for (select_monitor(++nm), nd=-1, cd=current_desktop; nd<DESKTOPS-1;) {
             for (select_desktop(++nd), c=head, n=0, urgent=False; c; c=c->next, ++n) if (c->isurgent) urgent = True;
-            fprintf(stdout, "%d:%d:%d:%d:%d:%d%c", nm, nd, n, mode, current_desktop == cd, urgent, (nm==MONITORS-1 && nd==DESKTOPS-1)?'\n':' ');
+            fprintf(stdout, "%d:%d:%d:%d:%d:%d:%d%c", nm, current_monitor == cm, nd, n, mode,
+                    current_desktop == cd, urgent, (nm==MONITORS-1 && nd==DESKTOPS-1)?'\n':' ');
         }
         if (cd != nd) select_desktop(cd);
     }
@@ -511,11 +516,12 @@ void maprequest(XEvent *e) {
     if (wintoclient(e->xmaprequest.window)) return;
 
     Bool follow = False, floating = False;
-    int cd = current_desktop, newdsk = current_desktop;
+    int cm = current_monitor, cd = current_desktop, newmon = current_monitor, newdsk = current_desktop;
     XClassHint ch = {0, 0};
     if (XGetClassHint(dis, e->xmaprequest.window, &ch))
         for (unsigned int i=0; i<LENGTH(rules); i++)
             if (strstr(ch.res_class, rules[i].class) || strstr(ch.res_name, rules[i].class)) {
+                newmon = (rules[i].monitor < 0) ? current_monitor:rules[i].monitor;
                 newdsk = (rules[i].desktop < 0) ? current_desktop:rules[i].desktop;
                 follow = rules[i].follow;
                 floating = rules[i].floating;
@@ -524,6 +530,7 @@ void maprequest(XEvent *e) {
     if (ch.res_class) XFree(ch.res_class);
     if (ch.res_name) XFree(ch.res_name);
 
+    if (cm != newmon) select_monitor(newmon);
     if (cd != newdsk) select_desktop(newdsk);
     client *c = addwindow(e->xmaprequest.window);
     c->istransient = XGetTransientForHint(dis, c->win, &w);
@@ -538,7 +545,7 @@ void maprequest(XEvent *e) {
     if (cm != newmon) select_monitor(cm);
     if (cd != newdsk) select_desktop(cd);
     if (cd == newdsk) { if (!c->isfloating) tile(); XMapWindow(dis, c->win); }
-    else if (follow) change_desktop(&(Arg){.i = newdsk});
+    else if (follow) { change_monitor(&(Arg){.i = newmon}); change_desktop(&(Arg){.i = newdsk}); }
     if (follow || cd == newdsk) update_current(c);
 
     desktopinfo();
@@ -851,7 +858,8 @@ void setup(void) {
     /* check if another window manager is running */
     xerrorxlib = XSetErrorHandler(xerrorstart);
     XSelectInput(dis, DefaultRootWindow(dis), SubstructureRedirectMask|ButtonPressMask|
-                                              SubstructureNotifyMask|PropertyChangeMask);
+                                              SubstructureNotifyMask|PropertyChangeMask|
+                                              (FOLLOW_MOUSE?PointerMotionMask:0));
     XSync(dis, False);
 
     XSetErrorHandler(xerror);
@@ -1121,6 +1129,14 @@ void xinerama_magic(void) {
 #endif
 }
 
+/* motion notify event */
+void motionnotify(XEvent *e) {
+    int m;
+    if (FOLLOW_MOUSE &&
+       (m = areatomonitor(e->xmotion.x_root, e->xmotion.y_root)) != current_monitor)
+        change_monitor(&(Arg){.i = m});
+}
+
 /* return which monitor area belongs */
 int areatomonitor(int x, int y) {
     for (int m=0; m<MONITORS; m++)
@@ -1165,6 +1181,11 @@ void select_monitor(int i) {
     showpanel       = desktops[current_desktop].showpanel;
     prevfocus       = desktops[current_desktop].prevfocus;
     current_monitor = i;
+}
+
+/* jump and focus the next or previous montior */
+void rotate_monitor(const Arg *arg) {
+    change_monitor(&(Arg){.i = (MONITORS + current_monitor + arg->i) % MONITORS});
 }
 
 /* move a client to another monitor
