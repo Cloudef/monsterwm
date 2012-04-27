@@ -484,6 +484,7 @@ void maprequest(XEvent *e) {
     if (state) XFree(state);
 
     if (cd != newdsk) select_desktop(cd);
+    if (cm != newmon) select_monitor(cm);
     if (cd == newdsk) { tile(); XMapWindow(dis, c->win); update_current(c); }
     else if (follow) { change_desktop(&(Arg){.i = newdsk}); update_current(c); }
     grabbuttons(c);
