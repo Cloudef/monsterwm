@@ -17,6 +17,8 @@
 #define CLEANMASK(mask) (mask & ~(numlockmask | LockMask))
 #define BUTTONMASK      ButtonPressMask|ButtonReleaseMask
 #define ISFFT(c)        (c->isfullscrn || c->isfloating || c->istransient)
+/* wrapper to automatically move/resize windows used by multi-monitor branch */
+#define XMVRSZ(dis, win, x, y, w, h) XMoveResizeWindow(dis, win, 0 + (x), 0 + (y), w, h)
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, BSTACK, GRID, FLOAT, MODES };
@@ -430,7 +432,7 @@ void grid(int hh, int cy) {
     for (client *c=head; c; c=c->next) {
         if (ISFFT(c)) continue; else ++i;
         if (i/rows + 1 > cols - n%cols) rows = n/cols + 1;
-        XMoveResizeWindow(dis, c->win, cn*cw, cy + rn*ch/rows, cw - BORDER_WIDTH, ch/rows - BORDER_WIDTH);
+        XMVRSZ(dis, c->win, cn*cw, cy + rn*ch/rows, cw - BORDER_WIDTH, ch/rows - BORDER_WIDTH);
         if (++rn >= rows) { rn = 0; cn++; }
     }
 }
@@ -549,7 +551,7 @@ void mousemotion(const Arg *arg) {
 
 /* each window should cover all the available screen space */
 void monocle(int hh, int cy) {
-    for (client *c=head; c; c=c->next) if (!ISFFT(c)) XMoveResizeWindow(dis, c->win, 0, cy, ww, hh);
+    for (client *c=head; c; c=c->next) if (!ISFFT(c)) XMVRSZ(dis, c->win, 0, cy, ww, hh);
 }
 
 /* move the current client, to current->next
@@ -633,8 +635,8 @@ void moveresize(const Arg *arg) {
     XWindowAttributes wa;
     if (!current || !XGetWindowAttributes(dis, current->win, &wa)) return;
     if (!current->isfloating && !current->istransient) { current->isfloating = True; tile(); }
-    XMoveResizeWindow(dis, current->win, wa.x + ((int *)arg->v)[0], wa.y + ((int *)arg->v)[1],
-                               wa.width  + ((int *)arg->v)[2], wa.height + ((int *)arg->v)[3]);
+    XMVRSZ(dis, current->win, wa.x + ((int *)arg->v)[0], wa.y + ((int *)arg->v)[1],
+                    wa.width  + ((int *)arg->v)[2], wa.height + ((int *)arg->v)[3]);
 }
 
 /* cyclic focus the next window
@@ -760,7 +762,7 @@ void setfullscreen(client *c, Bool fullscrn) {
     if (fullscrn != c->isfullscrn) XChangeProperty(dis, c->win,
             netatoms[NET_WM_STATE], XA_ATOM, 32, PropModeReplace, (unsigned char*)
             ((c->isfullscrn = fullscrn) ? &netatoms[NET_FULLSCREEN]:0), fullscrn);
-    if (fullscrn) XMoveResizeWindow(dis, c->win, 0, 0, ww, wh + PANEL_HEIGHT);
+    if (fullscrn) XMVRSZ(dis, c->win, 0, 0, ww, wh + PANEL_HEIGHT);
     XConfigureWindow(dis, c->win, CWBorderWidth, &(XWindowChanges){0,0,0,0,fullscrn?0:BORDER_WIDTH,0,0});
 }
 
@@ -858,25 +860,25 @@ void stack(int hh, int cy) {
      *     the first stack window so that it satisfies growth, and doesn't create gaps
      *     on the bottom of the screen.  */
     if (!c) return; else if (!n) {
-        XMoveResizeWindow(dis, c->win, 0, cy, ww - 2*BORDER_WIDTH, hh - 2*BORDER_WIDTH);
+        XMVRSZ(dis, c->win, 0, cy, ww - 2*BORDER_WIDTH, hh - 2*BORDER_WIDTH);
         return;
     } else if (n > 1) { d = (z - growth)%n + growth; z = (z - growth)/n; }
 
     /* tile the first non-floating, non-fullscreen window to cover the master area */
-    if (b) XMoveResizeWindow(dis, c->win, 0, cy, ww - 2*BORDER_WIDTH, ma - BORDER_WIDTH);
-    else   XMoveResizeWindow(dis, c->win, 0, cy, ma - BORDER_WIDTH, hh - 2*BORDER_WIDTH);
+    if (b) XMVRSZ(dis, c->win, 0, cy, ww - 2*BORDER_WIDTH, ma - BORDER_WIDTH);
+    else   XMVRSZ(dis, c->win, 0, cy, ma - BORDER_WIDTH, hh - 2*BORDER_WIDTH);
 
     /* tile the next non-floating, non-fullscreen (first) stack window with growth|d */
     for (c=c->next; c && ISFFT(c); c=c->next);
     int cx = b ? 0:ma, cw = (b ? hh:ww) - 2*BORDER_WIDTH - ma, ch = z - BORDER_WIDTH;
-    if (b) XMoveResizeWindow(dis, c->win, cx, cy += ma, ch - BORDER_WIDTH + d, cw);
-    else   XMoveResizeWindow(dis, c->win, cx, cy, cw, ch - BORDER_WIDTH + d);
+    if (b) XMVRSZ(dis, c->win, cx, cy += ma, ch - BORDER_WIDTH + d, cw);
+    else   XMVRSZ(dis, c->win, cx, cy, cw, ch - BORDER_WIDTH + d);
 
     /* tile the rest of the non-floating, non-fullscreen stack windows */
     for (b?(cx+=ch+d):(cy+=ch+d), c=c->next; c; c=c->next) {
         if (ISFFT(c)) continue;
-        if (b) { XMoveResizeWindow(dis, c->win, cx, cy, ch, cw); cx += z; }
-        else   { XMoveResizeWindow(dis, c->win, cx, cy, cw, ch); cy += z; }
+        if (b) { XMVRSZ(dis, c->win, cx, cy, ch, cw); cx += z; }
+        else   { XMVRSZ(dis, c->win, cx, cy, cw, ch); cy += z; }
     }
 }
 
