@@ -13,22 +13,16 @@
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
 
+#ifdef XINERAMA
+#include <X11/extensions/Xinerama.h>
+#endif
+
 #define LENGTH(x)       (sizeof(x)/sizeof(*x))
 #define CLEANMASK(mask) (mask & ~(numlockmask | LockMask))
 #define BUTTONMASK      ButtonPressMask|ButtonReleaseMask
 #define ISFFT(c)        (c->isfullscrn || c->isfloating || c->istransient)
 /* wrapper to automatically move/resize windows used by multi-monitor branch */
-#define XMVRSZ(dis, win, x, y, w, h) XMoveResizeWindow(dis, win, 0 + (x), 0 + (y), w, h)
-
-/* multi-monitor macros && headers */
-#ifdef XINERAMA
-#include <X11/extensions/Xinerama.h>
-#endif
-
-/* wrapper for XMoveResizeWindow,
- * does magic automatically for current monitor */
-#define _XMoveResizeWindow(dis, win, x, y, w, h) \
-    XMoveResizeWindow(dis, win, wx + (x), wy + (y), w, h)
+#define XMVRSZ(dis, win, x, y, w, h) XMoveResizeWindow(dis, win, wx + (x), wy + (y), w, h)
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, BSTACK, GRID, FLOAT, MODES };
@@ -378,7 +372,8 @@ void desktopinfo(void) {
     for (; m<MONITORS; m++) {
         for (select_monitor(m), d = 0, cd = current_desktop; d<DESKTOPS; d++) {
             for (select_desktop(d), c=head, n=0, urgent=False; c; c=c->next, ++n) if (c->isurgent) urgent = True;
-            fprintf(stdout, "%d:%d:%d:%d:%d:%d:%d%c", m, current_monitor == cm, d, n, mode, current_desktop == cd, urgent, (m+1 == MONITORS && d+1==DESKTOPS)?'\n':' ');
+            fprintf(stdout, "%d:%d:%d:%d:%d:%d:%d%c", m, current_monitor == cm, d, n, mode, current_desktop == cd,
+                                                              urgent, (m+1 == MONITORS && d+1==DESKTOPS)?'\n':' ');
         }
         if (cd != d-1) select_desktop(cd);
     }
@@ -826,8 +821,6 @@ void setup(void) {
     ww = XDisplayWidth(dis,  screen);
     wh = XDisplayHeight(dis, screen) - PANEL_HEIGHT;
 
-    // for (unsigned int i=0; i<DESKTOPS; i++) save_desktop(i);
-
     win_focus = getcolor(FOCUS);
     win_unfocus = getcolor(UNFOCUS);
 
@@ -1075,6 +1068,7 @@ static void setup_monitor(int i, int x, int y, int w, int h) {
     for (int d=0; d<DESKTOPS; ++d) save_desktop(d);
     save_monitor(i);
 
+    // DEBUG statement
     printf("%d: %dx%d+%d,%d\n", i, w, h, x, y);
 }
 
