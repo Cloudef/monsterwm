@@ -171,6 +171,14 @@ on top of which the `master` branch is built and builds.
 
   [core]: https://github.com/c00kiemon5ter/monsterwm/tree/core
 
+[Cloudef] has developed a [multi-monitor] version of monsterwm.
+The [multi-monitor][mm] branch here is ideas and patches to Cloudef's work.
+If you need multi-monitor support, grab his [multi-monitor] branch.
+
+  Cloudef:        https://github.com/Cloudef
+  multi-monitor:  https://github.com/Cloudef/monsterwm/tree/multi-monitor
+  mm:             https://github.com/c00kiemon5ter/monsterwm/tree/multi-monitor
+
 Bugs
 ----
 
