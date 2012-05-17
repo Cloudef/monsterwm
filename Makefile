@@ -10,8 +10,11 @@ MANPREFIX = ${PREFIX}/share/man
 X11INC = /usr/include/X11
 X11LIB = /usr/lib/X11
 
-INCS = -I. -I/usr/include -I${X11INC}
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lXcomposite -lGL
+XINERAMALIB   = `pkg-config --libs xinerama`
+XINERAMA      = -DXINERAMA
+
+INCS = -I. -I/usr/include -I${X11INC} ${XINERAMA}
+LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIB} -lXcomposite -lGL
 
 CFLAGS   = -std=c99 -pedantic -Wall -Wextra -g -Os ${INCS} ${CPPFLAGS} -DVERSION=\"${VERSION}\"
 LDFLAGS  = -g ${LIBS}
