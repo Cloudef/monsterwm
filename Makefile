@@ -10,19 +10,16 @@ MANPREFIX = ${PREFIX}/share/man
 X11INC = /usr/include/X11
 X11LIB = /usr/lib/X11
 
-XINERAMALIB   = `pkg-config --libs xinerama`
-XINERAMA      = -DXINERAMA
+INCS = -I. -I/usr/include -I${X11INC}
+LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 -lXcomposite -lGL
 
-INCS = -I. -I/usr/include -I${X11INC} ${XINERAMA}
-LIBS = -L/usr/lib -lc -L${X11LIB} -lX11 ${XINERAMALIB}
-
-CFLAGS   = -std=c99 -pedantic -Wall -Wextra -Os -g ${INCS} ${CPPFLAGS} -DVERSION=\"${VERSION}\"
+CFLAGS   = -std=c99 -pedantic -Wall -Wextra -g -Os ${INCS} ${CPPFLAGS} -DVERSION=\"${VERSION}\"
 LDFLAGS  = -g ${LIBS}
 
 CC 	 = cc
 EXEC = ${WMNAME}
 
-SRC = ${WMNAME}.c
+SRC = ${WMNAME}.c GL/glcomposite.c
 OBJ = ${SRC:.c=.o}
 
 all: options ${WMNAME}
@@ -33,9 +30,9 @@ options:
 	@echo "LDFLAGS  = ${LDFLAGS}"
 	@echo "CC       = ${CC}"
 
-.c.o:
+%.o: %.c
 	@echo CC $<
-	@${CC} -c ${CFLAGS} $<
+	@${CC} -c -o $@ ${CFLAGS} $<
 
 ${OBJ}: config.h
 
