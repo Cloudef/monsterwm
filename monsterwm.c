@@ -12,6 +12,7 @@
 #include <X11/XKBlib.h>
 #include <X11/Xproto.h>
 #include <X11/Xatom.h>
+#include <GL/glcomposite.h>
 
 #define LENGTH(x)       (sizeof(x)/sizeof(*x))
 #define CLEANMASK(mask) (mask & ~(numlockmask | LockMask))
@@ -713,7 +714,12 @@ void rotate_filled(const Arg *arg) {
 /* main event loop - on receival of an event call the appropriate event handler */
 void run(void) {
     XEvent ev;
-    while(running && !XNextEvent(dis, &ev)) if (events[ev.type]) events[ev.type](&ev);
+    while(running && !XNextEvent(dis, &ev)) {
+       if (events[ev.type]) events[ev.type](&ev);
+       eventgl(&ev); /* pass to compositor */
+       loopgl();
+       swapgl();
+    }
 }
 
 /* save specified desktop's properties */
@@ -773,6 +779,9 @@ void setup(void) {
         if (modmap->modifiermap[modmap->max_keypermod*k + j] == XKeysymToKeycode(dis, XK_Num_Lock))
             numlockmask = (1 << k);
     XFreeModifiermap(modmap);
+
+    if (setupgl(root, ww, wh) == -1)
+       errx(EXIT_FAILURE, "failed to enable composition");
 
     /* set up atoms for dialog/notification windows */
     wmatoms[WM_PROTOCOLS]     = XInternAtom(dis, "WM_PROTOCOLS",     False);
@@ -987,10 +996,13 @@ int main(int argc, char *argv[]) {
         errx(EXIT_SUCCESS, "version-%s - by c00kiemon5ter >:3 omnomnomnom", VERSION);
     else if (argc != 1) errx(EXIT_FAILURE, "usage: man monsterwm");
     if (!(dis = XOpenDisplay(NULL))) errx(EXIT_FAILURE, "cannot open display");
+    if (!connectiongl(dis, NULL))
+          errx(EXIT_FAILURE, "cannot connect to compositor");
     setup();
     desktopinfo(); /* zero out every desktop on (re)start */
     run();
     cleanup();
+    closeconnectiongl();
     XCloseDisplay(dis);
     return retval;
 }
