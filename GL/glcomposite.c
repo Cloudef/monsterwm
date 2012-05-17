@@ -27,16 +27,18 @@ typedef struct glwin
    unsigned int         tex;
    GLXPixmap            pix;
    int x, y, w, h;
-   char hidden, alpha;
+   char hidden, mapped, alpha;
    struct glwin *prev, *next;
 } glwin;
 
 glwin *glstack = NULL;
 
 void configuregl(XEvent *ev);
+void destroygl(XEvent *ev);
 void mapgl(XEvent *ev);
+void unmapgl(XEvent *ev);
 static void (*events[LASTEvent])(XEvent *e) = {
-    [MapRequest] = mapgl,
+    [MapRequest] = mapgl, [DestroyNotify] = destroygl,
     [ConfigureRequest] = configuregl,
 };
 
@@ -123,17 +125,8 @@ static glwin* alloc_glwin(Window win, glwin *prev)
 
    /* allocate to stack */
    if (!(w = malloc(sizeof(glwin)))) return NULL;
+   memset(w, 0, sizeof(glwin));
    w->win      = win;
-   // w->dam      = 0;
-   w->tex      = 0;
-   w->pix      = 0;
-   w->w        = 0;
-   w->h        = 0;
-   w->x        = 0;
-   w->y        = 0;
-   w->alpha    = 0;
-   w->hidden   = 0;
-   w->next     = NULL;
    w->prev     = prev;
 
 #if 0
@@ -146,7 +139,7 @@ static glwin* alloc_glwin(Window win, glwin *prev)
    update_glwin(w);
 
    /* redirect window */
-   XCompositeRedirectWindow(dis, win, CompositeRedirectAutomatic);
+   XCompositeRedirectWindow(dis, win, CompositeRedirectManual);
 
    /* create pixmap */
    if (!pixmap_glwin(w)) {
@@ -169,7 +162,6 @@ static glwin* dealloc_glwin(glwin *w)
 
    /* release */
    // if (w->dam) xcb_damage_destroy(dis, w->dam);
-   if (w->win) XCompositeUnredirectWindow(dis, w->win, CompositeRedirectAutomatic);
 
    /* free */
    if (w->pix) glXDestroyPixmap(gldis, w->pix);
@@ -218,6 +210,12 @@ static void draw_glwin(glwin *win)
 {
    float wx, wy, ww, wh;
    assert(win);
+
+   /* not mapped */
+   if (!win->mapped) return;
+
+   update_glwin(win);
+   pixmap_glwin(win);
 
    /* no need to draw */
    if (win->hidden) return;
@@ -337,20 +335,35 @@ void swapgl()
    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 }
 
+void destroygl(XEvent *e)
+{
+   glwin *win;
+   XDestroyWindowEvent *ev = &e->xdestroywindow;
+   if ((win = win_to_glwin(ev->window)))
+      dealloc_glwin(win);
+}
+
+void unmapgl(XEvent *e)
+{
+   glwin *win;
+   XUnmapEvent *ev = &e->xunmap;
+   if (!(win = win_to_glwin(ev->window)))
+      return;
+   win->mapped = 0;
+}
+
 void mapgl(XEvent *e)
 {
+   glwin *win;
    XMapRequestEvent *ev = &e->xmaprequest;
-   add_glwin(ev->window);
+   if (!(win = add_glwin(ev->window)))
+      return;
+   win->mapped = 1;
 }
 
 void configuregl(XEvent *e)
 {
    XConfigureRequestEvent *ev = &e->xconfigurerequest;
-   glwin *win = win_to_glwin(ev->window);
-   if (!win) return;
-
-   update_glwin(win);
-   pixmap_glwin(win);
 }
 
 void eventgl(XEvent *ev)
@@ -365,10 +378,8 @@ void loopgl()
 
    glready = true;
    if (!glready) return;
-   for (win = glstack; win; win = win->next) {
-      // update_glwin(win);
+   for (win = glstack; win; win = win->next)
       draw_glwin(win);
-   }
    glready = false;
 }
 

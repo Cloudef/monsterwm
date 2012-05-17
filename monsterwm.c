@@ -580,6 +580,8 @@ void mousemotion(const Arg *arg) {
                 }
                 break;
         }
+        loopgl();
+        swapgl();
     } while(ev.type != ButtonRelease);
     XUngrabPointer(dis, CurrentTime);
 }
@@ -768,12 +770,19 @@ void rotate_filled(const Arg *arg) {
     change_desktop(&(Arg){.i = (DESKTOPS + current_desktop + n) % DESKTOPS});
 }
 
+Bool nonblock(Display *display, XEvent *ev, XPointer arg) {
+   if (ev) {
+      if (events[ev->type]) events[ev->type](ev);
+      eventgl(ev);
+   }
+   return True;
+}
+
 /* main event loop - on receival of an event call the appropriate event handler */
 void run(void) {
     XEvent ev;
-    while(running && !XNextEvent(dis, &ev)) {
-       if (events[ev.type]) events[ev.type](&ev);
-       eventgl(&ev); /* pass to compositor */
+    while(running) {
+       XCheckIfEvent(dis, &ev, nonblock, NULL);
        loopgl();
        swapgl();
     }
@@ -836,7 +845,7 @@ void setup(void) {
             numlockmask = (1 << k);
     XFreeModifiermap(modmap);
 
-    if (setupgl(root, ww, wh) == -1)
+    if (setupgl(root, ww, wh + PANEL_HEIGHT) == -1)
        errx(EXIT_FAILURE, "failed to enable composition");
 
     /* set up atoms for dialog/notification windows */
