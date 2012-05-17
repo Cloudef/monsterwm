@@ -834,7 +834,7 @@ void setup(void) {
     root = RootWindow(dis, screen);
 
     ww = XDisplayWidth(dis,  screen);
-    wh = XDisplayHeight(dis, screen) - PANEL_HEIGHT;
+    wh = XDisplayHeight(dis, screen) - (PANEL_HEIGHT*2);
 
     // for (unsigned int i=0; i<DESKTOPS; i++) save_desktop(i);
 
@@ -1008,6 +1008,7 @@ void unmapnotify(XEvent *e) {
  * function anyway, we can just grab the buttons for the current
  * client that may be the new client. */
 void update_current(client *c) {
+    if (c) change_monitor(&(Arg){.i = c->monitor});
     if (!head) {
         XDeleteProperty(dis, root, netatoms[NET_ACTIVE]);
         current = prevfocus = NULL;
@@ -1084,7 +1085,7 @@ int main(int argc, char *argv[]) {
 
 /* initializes the monitor's parameters */
 static void setup_monitor(int i, int x, int y, int w, int h) {
-    ww = w; wh = h - PANEL_HEIGHT;
+    ww = w; wh = h - (PANEL_HEIGHT*2);
     wx = x; wy = y;
     desktops = monitors[i].desktops;
 
