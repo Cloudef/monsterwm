@@ -201,7 +201,7 @@ static Bool running = True, showpanel = SHOW_PANEL;
 static int previous_desktop = 0, current_desktop = 0, retval = 0;
 static int screen, wh, ww, mode = DEFAULT_MODE, master_size = 0, growth = 0;
 static int (*xerrorxlib)(Display *, XErrorEvent *);
-static unsigned int numlockmask = 0, win_unfocus, win_focus;
+static unsigned int numlockmask = 0, win_unfocus, win_focus, win_focus2;
 static Display *dis;
 static Window root;
 static client *head, *prevfocus, *current;
@@ -849,6 +849,7 @@ void setup(void) {
     // for (unsigned int i=0; i<DESKTOPS; i++) save_desktop(i);
 
     win_focus = getcolor(FOCUS);
+    win_focus2 = getcolor(FOCUS2);
     win_unfocus = getcolor(UNFOCUS);
 
     XModifierKeymap *modmap = XGetModifierMapping(dis);
@@ -1177,6 +1178,10 @@ void select_monitor(int i) {
     if (i < 0 || i >= MONITORS) return;
     save_desktop(current_desktop);
     save_monitor(current_monitor);
+
+    /* set inactive focus color */
+    if (current) XSetWindowBorder(dis, current->win, win_focus2);
+
     desktops         = monitors[i].desktops;
     current_desktop  = monitors[i].current_desktop;
     previous_desktop = monitors[i].previous_desktop;
@@ -1196,6 +1201,9 @@ void select_monitor(int i) {
     showpanel       = desktops[current_desktop].showpanel;
     prevfocus       = desktops[current_desktop].prevfocus;
     current_monitor = i;
+
+    /* set normal focus color */
+    if (current) XSetWindowBorder(dis, current->win, win_focus);
 }
 
 /* jump and focus the next or previous monitor */
