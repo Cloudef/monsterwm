@@ -1225,22 +1225,31 @@ void rotate_monitor(const Arg *arg) {
  * remove the current client from the monitor's desktop
  * and add it as last client of the new monitor's desktop */
 void client_to_monitor(const Arg *arg) {
-    if (!current || arg->i == current->monitor) return;
+    XWindowAttributes wa;
+    if (!current || arg->i == current->monitor ||
+        !XGetWindowAttributes(dis, current->win, &wa)) return;
     int cm = current_monitor;
     client *p = prev_client(current), *c = current;
 
-    select_monitor(arg->i);
+    select_monitor((c->monitor = arg->i));
     client *l = prev_client(head);
     update_current(l ? (l->next = c):head ? (head->next = c):(head = c));
-    c->monitor = arg->i;
+
+    /* make tiling client if moved without dragging */
+    if (c->isfloating && areatomonitor(wa.x, wa.y) != c->monitor) c->isfloating = False;
     tile();
 
     select_monitor(cm);
     if (c == head || !p) head = c->next; else p->next = c->next;
     c->next = NULL;
     update_current(prevfocus);
+    tile();
 
-    if (FOLLOW_WINDOW) change_monitor(arg); else tile();
+    if (FOLLOW_WINDOW) {
+       previous_monitor = current_monitor;
+       select_monitor(c->monitor);
+       update_current(current);
+    }
     desktopinfo();
 }
 
