@@ -20,8 +20,9 @@
 #define FOLLOW_WINDOW   False     /* Follow the window when moved to a different desktop */
 #define CLICK_TO_FOCUS  False     /* Focus an unfocused window when clicked */
 #define BORDER_WIDTH    2         /* window border width */
-#define FOCUS           "#ff950e" /* focused window border color   */
-#define UNFOCUS         "#444444" /* unfocused window border color */
+#define FOCUS           "#ff950e" /* focused window border color         */
+#define UNFOCUS         "#444444" /* unfocused window border color       */
+#define INFOCUS         "#0e41ff" /* focused windows on inactive monitor */
 #define DESKTOPS        4         /* number of desktops - edit DESKTOPCHANGE keys to suit */
 #define DEFAULT_DESKTOP 0         /* the desktop to focus on exec */
 #define MINWSZ          50        /* minimum window size in pixels */
