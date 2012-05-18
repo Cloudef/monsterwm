@@ -545,7 +545,7 @@ void maprequest(XEvent *e) {
     if (cm != newmon) select_monitor(cm);
     if (cd != newdsk) select_desktop(cd);
     if (cd == newdsk) { if (!c->isfloating) tile(); XMapWindow(dis, c->win); }
-    if (cm != newmon) select_monitor(cm);
+    if (cm != newmon) { select_monitor(cm); if (cd == newdsk) update_current(current); }
     if (follow) { change_monitor(&(Arg){.i = newmon}); change_desktop(&(Arg){.i = newdsk}); }
     if (follow || cd == newdsk) update_current(c);
 
