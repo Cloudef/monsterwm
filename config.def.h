@@ -28,7 +28,7 @@
 #define MINWSZ          50        /* minimum window size in pixels */
 
 /** multi-monitor settings **/
-#define FOLLOW_MONITOR  1         /* Focus monitor when mouse enters area */
+#define FOLLOW_MONITOR  True      /* Focus monitor when mouse enters area */
 #define DEFAULT_MONITOR 0
 
 /* open applications to specified monitor/desktop with specified mode.
