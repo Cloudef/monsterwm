@@ -237,7 +237,7 @@ client* addwindow(Window w) {
     else if (t) t->next = c; else head->next = c;
 
     c->monitor = current_monitor;
-    XSelectInput(dis, (c->win = w), PropertyChangeMask|FocusChangeMask|(FOLLOW_MONITOR?EnterWindowMask:0));
+    XSelectInput(dis, (c->win = w), PropertyChangeMask|FocusChangeMask|(FOLLOW_MOUSE?EnterWindowMask:0));
     return c;
 }
 
