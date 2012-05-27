@@ -832,7 +832,7 @@ void setfullscreen(client *c, Bool fullscrn) {
             ((c->isfullscrn = fullscrn) ? &netatoms[NET_FULLSCREEN]:0), fullscrn);
     if (fullscrn) XMVRSZ(dis, c->win, 0, 0, ww, wh + PANEL_HEIGHT);
     XConfigureWindow(dis, c->win, CWBorderWidth, &(XWindowChanges){0,0,0,0,
-          ((!fullscrn && MDSK(c).head && MDSK(c).head->next && MDSK(c).mode != MONOCLE) || c->isfloating)?BORDER_WIDTH:0,0,0});
+          (!fullscrn && (c->isfloating || (MDSK(c).head && MDSK(c).head->next && MDSK(c).mode != MONOCLE)))?BORDER_WIDTH:0,0,0});
 }
 
 /* set initial values
