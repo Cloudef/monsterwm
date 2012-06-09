@@ -150,6 +150,7 @@ Currently:
  * [initlayouts]    : define initial layouts for every desktop
  * [monocleborders] : adds borders to the monocle layout
  * [nmaster]        : adds nmaster layout - multiple master windows for BSTACK and TILE layouts
+ * [rectangle]      : draws only a rectangle when moving/resizing windows to keep resources low (ie through an ssh forwarded session)
  * [showhide]       : adds a function to show and hide all windows on all desktops
  * [uselessgaps]    : adds gaps around every window on screen
  * [warpcursor]     : cursors follows and is placed in the center of the current window
@@ -160,6 +161,7 @@ Currently:
   [initlayouts]:    https://github.com/c00kiemon5ter/monsterwm/tree/initlayouts
   [monocleborders]: https://github.com/c00kiemon5ter/monsterwm/tree/monocleborders
   [nmaster]:        https://github.com/c00kiemon5ter/monsterwm/tree/nmaster
+  [rectangle]:      https://github.com/c00kiemon5ter/monsterwm/tree/rectangle
   [showhide]:       https://github.com/c00kiemon5ter/monsterwm/tree/showhide
   [uselessgaps]:    https://github.com/c00kiemon5ter/monsterwm/tree/uselessgaps
   [warpcursor]:     https://github.com/c00kiemon5ter/monsterwm/tree/warpcursor
