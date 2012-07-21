@@ -190,12 +190,12 @@ static int xerrorstart(Display *dis, XErrorEvent *ee);
  * currdeskidx  - which desktop is currently active
  */
 static Bool running = True;
-static int wh, ww, off_x, off_y, currdeskidx;
-static unsigned int numlockmask, win_unfocus, win_focus;
+static int nmonitors, off_x, off_y, currmonidx;
+static unsigned int numlockmask, win_focus, win_unfocus, win_infocus;
 static Display *dis;
 static Window root;
 static Atom wmatoms[WM_COUNT], netatoms[NET_COUNT];
-static Desktop desktops[DESKTOPS];
+static Monitor *monitors;
 
 /**
  * array of event handlers
