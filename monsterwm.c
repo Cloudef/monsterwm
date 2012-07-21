@@ -278,10 +278,11 @@ void buttonpress(XEvent *e) {
  * move out old windows
  */
 void change_desktop(const Arg *arg) {
-    if (arg->i == currdeskidx || arg->i < 0 || arg->i >= DESKTOPS) return;
-    Desktop *d = &desktops[currdeskidx], *n = &desktops[(currdeskidx = arg->i)];
+    Monitor *m = &monitors[currmonidx];
+    if (arg->i == m->currdeskidx || arg->i < 0 || arg->i >= DESKTOPS) return;
+    Desktop *d = &m->desktops[m->currdeskidx], *n = &m->desktops[(m->currdeskidx = arg->i)];
     for (Client *c = n->head; c; c = c->next) MV(c, c->x - off_x, c->y - off_y);
-    if (n->head) { tile(n); focus(n->curr, n); }
+    if (n->head) { tile(n, m); focus(n->curr, n, m); }
     for (Client *c = d->head; c; c = c->next) MV(c, c->x + off_x, c->y + off_y);
     desktopinfo();
 }
