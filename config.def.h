@@ -39,25 +39,49 @@
 static const AppRule rules[] = { \
     /*  class     monitor  desktop  follow  float */
     { "MPlayer",     0,       3,    True,   False },
-    { "Gimp",        1,       0,    False,  True  },
+    { "mplayer2",    0,       3,    True,   False },
+    { "torrent",     1,       1,    False,  False },
+    { "rss",         1,       0,    False,  False },
+    { "irc",         1,       0,    False,  False },
+    { "dwb",         0,       0,    False,  False },
+    { "Oblogout",    0 ,     -1,    True,   True  },
+    { "qurxvt",      0,      -1,    True,   True  },
 };
 
 /* helper for spawning shell commands */
 #define SHCMD(cmd) {.com = (const char*[]){"/bin/sh", "-c", cmd, NULL}}
 
-/**
- * custom commands
- * must always end with ', NULL };'
- */
-static const char *termcmd[] = { "xterm", NULL };
+/** commands **/
+static const char *termcmd[]     = { "curxvt",           NULL };
+static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
+static const char *urxvtq[]      = { "qurxvt",           NULL };
+static const char *oblogout[]    = { "oblogout",         NULL };
+static const char *svolminus[]   = { "svol", "-d", "1",  NULL };
+static const char *svolplus[]    = { "svol", "-i", "1",  NULL };
+static const char *svolmute[]    = { "svol", "-t",       NULL };
+static const char *loliclip[]    = { "lolictrl",         NULL };
+static const char *lolicurl[]    = { "lolictrl", "-u",   NULL };
+static const char *lolisync[]    = { "lolictrl", "-spc", NULL };
+static const char *mpdtoggle[]   = { "lolimpd", "toggle", NULL };
+static const char *lolimpd[]     = { "lolimpdnu", NULL };
+
+#define STR_EXPAND(tok) #tok
+#define STR(tok) STR_EXPAND(tok)
+
+/* PRNTS: file name syntax
+ * PRNTF: fullscreen print command
+ * PRNTW: window print command */
+#define PRNTS "$HOME/monsterwm-$(date +'%H:%M-%d-%m-%Y').png"
+#define PRNTF "ffcast -x "STR(DEFAULT_MONITOR)" % scrot -g %wx%h+%x+%y "PRNTS
+#define PRNTW "scrotwin "PRNTS
 
 #define MONITORCHANGE(K,N) \
-    {  MOD4,             K,              change_monitor, {.i = N}}, \
-    {  MOD4|ShiftMask,   K,              client_to_monitor, {.i = N}},
+    {  MOD1,             K,              change_monitor, {.i = N}}, \
+    {  MOD1|ShiftMask,   K,              client_to_monitor, {.i = N}},
 
 #define DESKTOPCHANGE(K,N) \
-    {  MOD1,             K,              change_desktop, {.i = N}}, \
-    {  MOD1|ShiftMask,   K,              client_to_desktop, {.i = N}},
+    {  MOD4,             K,              change_desktop, {.i = N}}, \
+    {  MOD4|ShiftMask,   K,              client_to_desktop, {.i = N}},
 
 /**
  * keyboard shortcuts
@@ -101,16 +125,33 @@ static Key keys[] = {
        DESKTOPCHANGE(    XK_F2,                             1)
        DESKTOPCHANGE(    XK_F3,                             2)
        DESKTOPCHANGE(    XK_F4,                             3)
+
+    /* monitor shortcuts */
+       MONITORCHANGE(    XK_comma,                          0)
+       MONITORCHANGE(    XK_period,                         1)
        MONITORCHANGE(    XK_F1,                             0)
        MONITORCHANGE(    XK_F2,                             1)
+
+    { 0,                 XK_Print,      spawn,             SHCMD(PRNTF) },
+    { MOD1,              XK_Print,      spawn,             SHCMD(PRNTW) },
+    { MOD4,              XK_Page_Down,  spawn,             {.v = svolminus } },
+    { MOD4,              XK_Page_Up,    spawn,             {.v = svolplus  } },
+    { MOD4|CONTROL,      XK_m,          spawn,             {.v = svolmute  } },
+    { 0,                 XK_section,    spawn,             {.v = urxvtq    } },
+    { MOD4,              XK_Escape,     spawn,             {.v = oblogout  } },
+    { MOD4,              XK_c,          spawn,             {.v = loliclip  } },
+    { MOD4|SHIFT,        XK_c,          spawn,             {.v = lolicurl  } },
+    { MOD1|SHIFT,        XK_c,          spawn,             {.v = lolisync  } },
+    { 0,                 XK_Pause,      spawn,             {.v = mpdtoggle } },
+    { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
 };
 
 /**
  * mouse shortcuts
  */
 static Button buttons[] = {
-    {  MOD1,    Button1,     mousemotion,   {.i = MOVE}},
-    {  MOD1,    Button3,     mousemotion,   {.i = RESIZE}},
+    {  MOD4,    Button1,     mousemotion,   {.i = MOVE}},
+    {  MOD4,    Button3,     mousemotion,   {.i = RESIZE}},
 };
 #endif
 
