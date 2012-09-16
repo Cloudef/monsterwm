@@ -76,12 +76,12 @@ static const char *lolimpd[]     = { "lolimpdnu", NULL };
 #define PRNTW "scrotwin "PRNTS
 
 #define MONITORCHANGE(K,N) \
-    {  MOD1,             K,              change_monitor, {.i = N}}, \
-    {  MOD1|ShiftMask,   K,              client_to_monitor, {.i = N}},
+    {  MOD4,             K,              change_monitor, {.i = N}}, \
+    {  MOD4|ShiftMask,   K,              client_to_monitor, {.i = N}},
 
 #define DESKTOPCHANGE(K,N) \
-    {  MOD4,             K,              change_desktop, {.i = N}}, \
-    {  MOD4|ShiftMask,   K,              client_to_desktop, {.i = N}},
+    {  MOD1,             K,              change_desktop, {.i = N}}, \
+    {  MOD1|ShiftMask,   K,              client_to_desktop, {.i = N}},
 
 /**
  * keyboard shortcuts
