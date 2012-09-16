@@ -24,7 +24,7 @@
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, BSTACK, GRID, FLOAT, MODES };
 enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
-enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_COUNT };
+enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
 /**
  * argument structure to be passed to function by config.h
@@ -1138,6 +1138,7 @@ void setup(void) {
     netatoms[NET_WM_STATE]    = XInternAtom(dis, "_NET_WM_STATE",    False);
     netatoms[NET_ACTIVE]      = XInternAtom(dis, "_NET_ACTIVE_WINDOW",       False);
     netatoms[NET_FULLSCREEN]  = XInternAtom(dis, "_NET_WM_STATE_FULLSCREEN", False);
+    netatoms[NET_WM_NAME]     = XInternAtom(dis, "_NET_WM_NAME", False);
 
     /* propagate EWMH support */
     XChangeProperty(dis, root, netatoms[NET_SUPPORTED], XA_ATOM, 32,
@@ -1165,13 +1166,109 @@ void sigchld(__attribute__((unused)) int sig) {
     else err(EXIT_FAILURE, "cannot install SIGCHLD handler");
 }
 
+#define SPAWN_CWD_DELIM "()[]{}[]<>\"':"
+#include <libgen.h>
+#include <sys/stat.h>
+static Bool gettextprop(Window w, Atom atom, char *text, size_t size) {
+    char **list = NULL;
+    int n;
+    XTextProperty name;
+
+    if (!text || !size) return False;
+    text[0] = 0;
+    XGetTextProperty(dis, w, &name, atom);
+    if (!name.nitems) return False;
+    if (name.encoding == XA_STRING)
+       strncpy(text, (char*)name.value, size-1);
+    else {
+       if (XmbTextPropertyToTextList(dis, &name, &list, &n) >= Success && n > 0 && *list) {
+          strncpy(text, *list, size-1);
+          XFreeStringList(list);
+       }
+    }
+    text[size-1] = 0;
+    XFree(name.value);
+    return True;
+}
+
+static void swpdir(char *name) {
+    const char *home = getenv("HOME");
+    size_t homelen;
+    char *cwd, *pathbuf = NULL;
+    struct stat statbuf;
+    int check_again = 1;
+    Monitor *m = &monitors[currmonidx];
+    Desktop *d = &m->desktops[m->currdeskidx];
+
+    if (!d->curr || !name[0] || !home || !strchr(home, '/'))
+       return;
+    homelen = strlen(home);
+
+    /* check first if the whole thing is a path */
+    cwd = name;
+    if (*cwd == '~') { /* expand to $HOME */
+       if(!(pathbuf = malloc(homelen + strlen(cwd))))
+          return;
+       strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+       cwd = pathbuf;
+    }
+
+    if (strchr(cwd, '/') && !stat(cwd, &statbuf)) {
+       if (!S_ISDIR(statbuf.st_mode))
+          cwd = dirname(cwd);
+
+       if (!chdir(cwd))
+          check_again = 0;
+    }
+    if (pathbuf) free(pathbuf);
+    pathbuf = NULL;
+
+    if (!check_again)
+       return;
+
+    cwd = strtok(name, SPAWN_CWD_DELIM);
+    while (cwd) {
+       if (*cwd == '~') { /* expand to $HOME */
+          if(!(pathbuf = malloc(homelen + strlen(cwd))))
+             return;
+          strcpy(strcpy(pathbuf, home) + homelen, cwd + 1);
+          cwd = pathbuf;
+       }
+
+       if (strchr(cwd, '/') && !stat(cwd, &statbuf)) {
+          if (!S_ISDIR(statbuf.st_mode))
+             cwd = dirname(cwd);
+
+          if (!chdir(cwd))
+             break;
+       }
+
+       cwd = strtok(NULL, SPAWN_CWD_DELIM);
+    }
+
+    /* our memory shall be gone */
+    if (pathbuf) free(pathbuf);
+}
+
 /**
  * execute a command
  */
 void spawn(const Arg *arg) {
+    char name[256] = {0};
+    Monitor *m = &monitors[currmonidx];
+    Desktop *d = &m->desktops[m->currdeskidx];
+
+    /* get window name */
+    if (d->curr) {
+      if (!gettextprop(d->curr->win, netatoms[NET_WM_NAME], name, sizeof(name)))
+         gettextprop(d->curr->win, XA_WM_NAME, name, sizeof(name));
+    }
+
     if (fork()) return;
     if (dis) close(ConnectionNumber(dis));
     setsid();
+    swpdir(name);
+    freopen("/dev/null", "w", stdout); freopen("/dev/null", "w", stderr);
     execvp((char*)arg->com[0], (char**)arg->com);
     err(EXIT_SUCCESS, "execvp %s", (char *)arg->com[0]);
 }
