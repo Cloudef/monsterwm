@@ -201,14 +201,7 @@ int main(int argc, char **argv)
          desktop[d].windows = w;
       }
 
-      /* failed sscanf? */
-      if (co < 7) {
-         printf("ERROR");
-         eol();
-         fflush(stdout);
-      } else
-         printdata(mode<layouts?mode:0);
-
+      printdata(mode<layouts?mode:0);
       strsplit_clear(&data);
       memset(buffer, 0, bytes);
    }
