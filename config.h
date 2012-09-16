@@ -61,6 +61,7 @@ static const AppRule rules[] = { \
     { "dwb",         0,       0,    False,  False },
     { "Oblogout",    0 ,     -1,    True,   True  },
     { "qurxvt",      0,      -1,    True,   True  },
+    { "stalonetray", 0,      -1,    False,  True  },
 };
 
 /* helper for spawning shell commands */
@@ -70,6 +71,7 @@ static const AppRule rules[] = { \
 static const char *termcmd[]     = { "curxvt",           NULL };
 static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
 static const char *urxvtq[]      = { "qurxvt",           NULL };
+static const char *trayd[]       = { "stalonetrayd",     NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *svolminus[]   = { "svol", "-d", "1",  NULL };
 static const char *svolplus[]    = { "svol", "-i", "1",  NULL };
@@ -154,6 +156,7 @@ static Key keys[] = {
     { MOD4,              XK_Page_Up,    spawn,             {.v = svolplus  } },
     { MOD4|CONTROL,      XK_m,          spawn,             {.v = svolmute  } },
     { 0,                 XK_section,    spawn,             {.v = urxvtq    } },
+    { MOD4,              XK_t,          spawn,             {.v = trayd     } },
     { MOD4,              XK_Escape,     spawn,             {.v = oblogout  } },
     { MOD4,              XK_c,          spawn,             {.v = loliclip  } },
     { MOD4|SHIFT,        XK_c,          spawn,             {.v = lolicurl  } },
