@@ -31,6 +31,21 @@
 #define DESKTOPS        4         /* number of desktops - edit DESKTOPCHANGE keys to suit */
 
 /**
+ * layouts for monitors, terminate with -1
+ */
+static const int monitor1[] = { TILE, TILE, BSTACK, MONOCLE, -1 };
+static const int monitor2[] = { BSTACK, BSTACK, BSTACK, BSTACK, -1 };
+
+/**
+ * monitor configuration
+ */
+static const MonitorCfg monitorcfg[] = {
+    /* show panel, layouts */
+    { TRUE,  monitor1 },
+    { FALSE, monitor2 },
+};
+
+/**
  * open applications to specified monitor and desktop
  * with the specified properties.
  * if monitor is negative, then current is assumed

@@ -80,6 +80,17 @@ typedef struct {
     const Bool follow, floating;
 } AppRule;
 
+
+/**
+ * Monitor configuration struct
+ * sbar     - show bar for monitor
+ * layout   - list of modes terminated with -1
+ */
+typedef struct {
+    Bool sbar;
+    const int *layout;
+} MonitorCfg;
+
 /* exposed function prototypes sorted alphabetically */
 static void change_desktop(const Arg *arg);
 static void change_monitor(const Arg *arg);
@@ -1111,10 +1122,21 @@ void setup(void) {
         err(EXIT_FAILURE, "cannot allocate monitors");
 
     for (int m = 0; m < nmonitors; m++) {
+        const int *layout = NULL;
+        Bool sbar         = SHOW_PANEL;
+
+        if ((int)LENGTH(monitorcfg) > m) {
+            layout = monitorcfg[m].layout;
+            sbar   = monitorcfg[m].sbar;
+        }
         monitors[m] = (Monitor){ .x = info[m].x_org, .y = info[m].y_org,
                                  .w = info[m].width, .h = info[m].height };
-        for (unsigned int d = 0; d < DESKTOPS; d++)
-            monitors[m].desktops[d] = (Desktop){ .mode = DEFAULT_MODE, .sbar = SHOW_PANEL };
+        for (unsigned int d = 0; d < DESKTOPS; d++) {
+            monitors[m].desktops[d] = (Desktop){ .mode = DEFAULT_MODE, .sbar = sbar };
+            if (layout && layout[d] != -1) monitors[m].desktops[d].mode = layout[d];
+            else layout = NULL;
+
+        }
     }
     XFree(info);
 
