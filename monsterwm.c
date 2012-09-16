@@ -104,6 +104,9 @@ static void swap_master();
 static void switch_mode(const Arg *arg);
 static void togglepanel();
 
+/* added */
+static void togglefullscreen();
+
 #include "config.h"
 
 /**
@@ -1436,6 +1439,17 @@ int main(int argc, char *argv[]) {
     cleanup();
     XCloseDisplay(dis);
     return retval;
+}
+
+/**
+ * toggle fullscreen
+ */
+void togglefullscreen(void) {
+    Monitor *m = &monitors[currmonidx];
+    Desktop *d = &m->desktops[m->currdeskidx];
+    if (!d->curr) return;
+    setfullscreen(d->curr, d, m, !d->curr->isfull);
+    tile(d, m);
 }
 
 /* vim: set expandtab ts=4 sts=4 sw=4 : */

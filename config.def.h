@@ -144,6 +144,7 @@ static Key keys[] = {
     { MOD1|SHIFT,        XK_c,          spawn,             {.v = lolisync  } },
     { 0,                 XK_Pause,      spawn,             {.v = mpdtoggle } },
     { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
+    { MOD4,              XK_F12,        togglefullscreen,  {NULL}},
 };
 
 /**
