@@ -361,11 +361,10 @@ void clientmessage(XEvent *e) {
  */
 void configurerequest(XEvent *e) {
     XConfigureRequestEvent *ev = &e->xconfigurerequest;
-    if (wintoclient(ev->window, &(Client *){0}, &(Desktop *){0}))  {
-        XSendEvent(dis, ev->window, False, StructureNotifyMask, (XEvent *)&(XConfigureRequestEvent){ ConfigureNotify, 0L,
-          False, dis, ev->window, ev->window, ev->x, ev->y,  ev->width, ev->height, ev->border_width, ev->above, 0, 0 });
-    } else XConfigureWindow(dis, ev->window, ev->value_mask, &(XWindowChanges){ ev->x, ev->y,  ev->width,
-                                                      ev->height, ev->border_width, ev->above, ev->detail });
+    XWindowChanges wc = { ev->x, ev->y,  ev->width, ev->height, ev->border_width, ev->above, ev->detail };
+    if (XConfigureWindow(dis, ev->window, ev->value_mask, &wc)) XSync(dis, False);
+    Desktop *d = NULL; Client *c = NULL;
+    if (wintoclient(ev->window, &c, &d)) tile(d);
 }
 
 /**
