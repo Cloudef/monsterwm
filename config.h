@@ -70,7 +70,7 @@ static const AppRule rules[] = { \
 /** commands **/
 static const char *termcmd[]     = { "termite",          NULL };
 static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
-static const char *urxvtq[]      = { "qurxvt",           NULL };
+static const char *qtermite[]    = { "qtermite",         NULL };
 static const char *trayd[]       = { "stalonetrayd",     NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *svolminus[]   = { "svol", "-d", "1",  NULL };
@@ -155,7 +155,7 @@ static Key keys[] = {
     { MOD4,              XK_Page_Down,  spawn,             {.v = svolminus } },
     { MOD4,              XK_Page_Up,    spawn,             {.v = svolplus  } },
     { MOD4|CONTROL,      XK_m,          spawn,             {.v = svolmute  } },
-    { 0,                 XK_section,    spawn,             {.v = urxvtq    } },
+    { 0,                 XK_section,    spawn,             {.v = qtermite  } },
     { MOD4,              XK_t,          spawn,             {.v = trayd     } },
     { MOD4,              XK_Escape,     spawn,             {.v = oblogout  } },
     { MOD4,              XK_c,          spawn,             {.v = loliclip  } },
