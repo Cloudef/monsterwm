@@ -59,8 +59,8 @@ static const AppRule rules[] = { \
     { "rss",         1,       0,    False,  False },
     { "irc",         1,       0,    False,  False },
     { "dwb",         0,       0,    False,  False },
-    { "Oblogout",    0 ,     -1,    True,   True  },
-    { "qurxvt",      0,      -1,    True,   True  },
+    { "Oblogout",    0 ,     -1,    True,   False  },
+    { "qtermite",    0,      -1,    True,   True  },
     { "stalonetray", 0,      -1,    False,  True  },
 };
 
@@ -68,7 +68,7 @@ static const AppRule rules[] = { \
 #define SHCMD(cmd) {.com = (const char*[]){"/bin/sh", "-c", cmd, NULL}}
 
 /** commands **/
-static const char *termcmd[]     = { "curxvt",           NULL };
+static const char *termcmd[]     = { "termite",          NULL };
 static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
 static const char *urxvtq[]      = { "qurxvt",           NULL };
 static const char *trayd[]       = { "stalonetrayd",     NULL };
