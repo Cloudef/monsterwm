@@ -80,6 +80,8 @@ static const char *loliclip[]    = { "lolictrl",         NULL };
 static const char *lolicurl[]    = { "lolictrl", "-u",   NULL };
 static const char *lolisync[]    = { "lolictrl", "-spc", NULL };
 static const char *mpdtoggle[]   = { "lolimpd", "toggle", NULL };
+static const char *mpdnext[]     = { "lolimpd", "next", NULL };
+static const char *mpdprev[]     = { "lolimpd", "prev", NULL };
 static const char *lolimpd[]     = { "lolimpdnu", NULL };
 
 #define STR_EXPAND(tok) #tok
@@ -162,6 +164,8 @@ static Key keys[] = {
     { MOD4|SHIFT,        XK_c,          spawn,             {.v = lolicurl  } },
     { MOD1|SHIFT,        XK_c,          spawn,             {.v = lolisync  } },
     { 0,                 XK_Pause,      spawn,             {.v = mpdtoggle } },
+    { MOD4,              XK_Home,       spawn,             {.v = mpdprev   } },
+    { MOD4,              XK_End,        spawn,             {.v = mpdnext   } },
     { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
     { MOD4,              XK_F12,        togglefullscreen,  {NULL}},
 };
