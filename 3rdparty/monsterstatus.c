@@ -1,54 +1,81 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <libgen.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include <sys/stat.h>
+#include <sys/select.h>
 #include <alsa/asoundlib.h>
 #include <mpd/client.h>
 
-#define whitespace() printf("|")
-#define eol()        printf("\n")
+#define aligncenter() printf("\\c")
+#define alignleft()   printf("\\l")
+#define alignright()  printf("\\r")
+#define whitespace()  printf(" \\f2| ")
+#define eol()         printf("\n")
 
-#define DEF_FG          "#CACACA"
-#define DEF_BG          "#121212"
+#define DEFAULT      1
+#define LAYOUT       8
+#define WINDOWS      7
 
-#define VOL_FG          "#AFD700"
-#define VOL_BG          "#363636"
-#define VOL_PERC_FG     "#DDEEDD"
-#define VOL_PERC_BG     DEF_BG
+#define VOL_FG          7
 
-#define DATE_FG         DEF_FG
-#define DATE_BG         "#282828"
-#define TIME_FG         "#66AABB"
-#define TIME_BG         DEF_BG
+#define DATE_SEP        "\\f5>\\f3>"
+#define DATE_FG         8
+#define TIME_FG         8
 
-#define UPDATE_FG       "#FEA63C"
-#define UPDATE_BG       DEF_BG
+#define UPDATE_FG       4
+#define COWER_FG        5
 
-#define COWER_FG        VOL_FG
-#define COWER_BG        DEF_BG
-
-#define MPD_FONT        "Kochi Gothic"
-#define MPD_ARTIST_FG   "#888888"
-#define MPD_ALBUM_FG    "#999999"
-#define MPD_TITLE_FG    "#DDDDDD"
-#define MPD_ARTIST_BG   "#000000"
-#define MPD_ALBUM_BG    "#222222"
-#define MPD_TITLE_BG    "#333333"
+#define MPD_TIME        "\\f3%d:%.2d \\f1| \\f3%d:%.2d\\f5"
+#define MPD_SEP         "\\f5>\\f3>"
+#define MPD_ARTIST_FG   1
+#define MPD_ALBUM_FG    1
+#define MPD_TITLE_FG    1
 
 #define BAT_ROOT     "/sys/class/power_supply/bq27500-0"
 #define BAT_CHARGE   "capacity"
 #define BAT_STATE    "status"
 
-#define BAT_CHARGING "#FEA63C"
-#define BAT_GOOD     VOL_FG
-#define BAT_AVEG     TIME_FG
-#define BAT_BAD      "#FF6600"
-#define BAT_BG       VOL_BG
+#define BAT_CHARGING 1
+#define BAT_GOOD     1
+#define BAT_AVEG     1
+#define BAT_BAD      1
 
 #define batcmp(x,y) memcmp(x, y, strlen(y))
 
 #define SLEEP_INTERVAL  1000 /* ms */
 #define MPD_TIMEOUT     3000
+
+typedef struct desktop_t {
+   int current, urgent, windows;
+   const char *n;
+   char c;
+} desktop_t;
+
+typedef struct layout_t {
+   const char *n;
+   char c;
+} layout_t;
+
+static desktop_t desktop[] = {
+   { .n = "web", .c = DEFAULT },
+   { .n = "dev", .c = DEFAULT },
+   { .n = "foo", .c = DEFAULT },
+   { .n = "mplayer", .c = DEFAULT },
+   { .n = NULL }
+};
+
+static layout_t layout[]  = {
+   { .n = "CLASSIC", .c = LAYOUT },
+   { .n = "MONOCLE", .c = LAYOUT },
+   { .n = "BACKSTAB", .c = LAYOUT },
+   { .n = "GRID", .c = LAYOUT },
+   { .n = "TROLL", .c = LAYOUT },
+   { .n =  NULL }
+};
 
 enum {
    PLAY_REPEAT  = 0x1,
@@ -85,8 +112,7 @@ static void die(const char *errstr, ...) {
    exit(EXIT_FAILURE);
 }
 
-static int execget(char *bin, char *buffer, size_t len)
-{
+static int execget(char *bin, char *buffer, size_t len) {
    FILE *p;
    size_t read;
 
@@ -100,6 +126,43 @@ static int execget(char *bin, char *buffer, size_t len)
    if (read && buffer[read-1] == '\n')
       buffer[read-1] = 0;
    return read;
+}
+
+static int strsplit(char ***dst, char *str, char *token) {
+   char *saveptr, *ptr, *start;
+   int32_t t_len, i;
+
+   if (!(saveptr=strdup(str)))
+      return 0;
+
+   *dst=NULL;
+   t_len=strlen(token);
+   i=0;
+
+   for (start=saveptr,ptr=start;;ptr++) {
+      if (!strncmp(ptr,token,t_len) || !*ptr) {
+         while (!strncmp(ptr,token,t_len)) {
+            *ptr=0;
+            ptr+=t_len;
+         }
+
+         if (!((*dst)=realloc(*dst,(i+2)*sizeof(char*))))
+            return 0;
+         (*dst)[i]=start;
+         (*dst)[i+1]=NULL;
+         i++;
+
+         if (!*ptr)
+            break;
+         start=ptr;
+      }
+   }
+   return i;
+}
+
+static void strsplit_clear(char ***dst) {
+   if ((*dst)[0]) free((*dst)[0]);
+   free((*dst));
 }
 
 static void mpd_quit(void) {
@@ -157,15 +220,11 @@ static void mpd_now_playing(void) {
    dm = mpd->state.duration / 60;
    ds = mpd->state.duration - dm * 60;
 
-   if (artist && album && title)
-      printf("|^fg(%s)%d:%.2d/^fg(%s)%d:%.2d|"
-            "^fn("MPD_FONT")"
-             "^bg(%s)^fg(%s)%s^bg(%s)^fg(%s)%s^bg(%s)^fg(%s)%s^bg()^fg()"
-             "^fn()",
-            TIME_FG, em, es, DATE_FG, dm, ds,
-            MPD_ARTIST_BG, MPD_ARTIST_FG, artist,
-            MPD_ALBUM_BG,  MPD_ALBUM_FG,  album,
-            MPD_TITLE_BG,  MPD_TITLE_FG,  title);
+   if (artist && album && title)  {
+      printf(MPD_TIME" "MPD_SEP" "
+             "\\f%d%s "MPD_SEP" \\f%d%s "MPD_SEP" \\f%d%s\\f1", em, es, dm, ds,
+            MPD_ARTIST_FG, artist, MPD_ALBUM_FG, album, MPD_TITLE_FG, title);
+   }
    mpd_song_free(song);
 }
 
@@ -223,7 +282,7 @@ static snd_mixer_elem_t* alsamixer(snd_mixer_t *handle, const char *mixer)
 int getvolume(snd_mixer_elem_t *mixer)
 {
    long volume, min, max;
-   int percent, mute;
+   int mute;
    snd_mixer_selem_get_playback_volume_range(mixer, &min, &max);
    snd_mixer_selem_get_playback_volume(mixer, SND_MIXER_SCHN_MONO, &volume);
    snd_mixer_selem_get_playback_switch(mixer, SND_MIXER_SCHN_MONO, &mute);
@@ -250,14 +309,6 @@ static int batterycharge(int *charge)
    return 1;
 }
 
-static void gdbar(char *buffer, int perc, char *fg, char *bg, int w, int h)
-{
-   int fill, unfill;
-   fill   = (perc*w)/100;
-   unfill = w - fill;
-   snprintf(buffer, 255, "^fg(%s)^r(%dx%d)^fg(%s)^r(%dx%d)^fg()", fg, fill, h, bg, unfill, h);
-}
-
 static int printmpd() {
    if (mpd_init() && mpd_update_status() != -1) {
       mpd_now_playing();
@@ -267,40 +318,38 @@ static int printmpd() {
    return 0;
 }
 
-static void printpacman() {
+static void printpacman(int update) {
    static char buffer[5];
    static int times = 1;
 
-   if (--times==0) {
+   if (!update && --times==0) {
       execget("pacup -u 2>/dev/null | wc -l", buffer, 5);
       times = 15;
    }
 
-   printf("^bg(%s)^fg(%s)%s^fg()^bg()", UPDATE_BG, UPDATE_FG, buffer);
+   printf("\\f%d%s\\f1", UPDATE_FG, buffer);
 }
 
-static void printcower() {
+static void printcower(int update) {
    static char buffer[5];
    static int times = 1;
 
-   if (--times==0) {
+   if (!update && --times==0) {
       execget("cower -u 2>/dev/null | wc -l", buffer, 5);
       times = 15;
    }
 
-   printf("^bg(%s)^fg(%s)%s^fg()^bg()", COWER_BG, COWER_FG, buffer);
+   printf("\\f%d%s\\f1", COWER_FG, buffer);
 }
 
 static void printvolume(snd_mixer_elem_t *mixer) {
-   char buffer[256]; int volume;
+   int volume;
    volume = getvolume(mixer);
-   gdbar(buffer, volume, VOL_FG, VOL_BG, 35, 9);
-   printf("%s^bg(%s)^fg(%s)%3d%%^fg()^bg()",
-         buffer, VOL_PERC_BG, VOL_PERC_FG, volume);
+   printf("\\f%d%3d%%\\f1", VOL_FG, volume);
 }
 
 static void printbattery() {
-   char state[13], buffer[256], *color; int charge;
+   char state[13]; int charge, color;
    if (!batterystate(state) || !batterycharge(&charge)) {
       printf("FAIL");
       return;
@@ -309,8 +358,7 @@ static void printbattery() {
    else if (charge > 65)            color = BAT_GOOD;
    else if (charge > 25)            color = BAT_AVEG;
    else                             color = BAT_BAD;
-   gdbar(buffer, charge, color, BAT_BG, 35, 9);
-   printf("%s %s %3d%%", !batcmp(state, "Charging")?"CHR":"BAT", buffer, charge);
+   printf("\\f%d%s %3d%%", color, !batcmp(state, "Charging")?"CHR":"BAT", charge);
 }
 
 static void printdate() {
@@ -320,13 +368,102 @@ static void printdate() {
    timeinfo = localtime(&rawtime);
    strftime(date, sizeof(date)-1, "%a %d/%m", timeinfo);
    strftime(clock, sizeof(clock)-1, "%H:%M", timeinfo);
-   printf("^bg(%s)^fg(%s)%s^bg(%s)^fg(%s)%s^fg()^bg()",
-         DATE_BG, DATE_FG, date, TIME_BG, TIME_FG, clock);
+   printf("\\f%d%s "DATE_SEP" \\f%d%s\\f1", DATE_FG, date, TIME_FG, clock);
+}
+
+static void printdata()
+{
+   int i;
+   char color;
+
+   for (i = 0; desktop[i].n; ++i) {
+      color = desktop[i].c;
+      if (desktop[i].current)
+        printf("\\f9\\u3\\b2 ");
+      else if (desktop[i].urgent)
+        printf("\\f9\\u4\\b2 ");
+      else printf("\\f9\\u0\\b0 ");
+
+      printf("%s", desktop[i].n);
+      if (desktop[i].windows) printf(" \\f%d[%d]", WINDOWS, desktop[i].windows);
+      printf(" \\u0\\b0");
+   }
+}
+
+static void printlayout(int mode)
+{
+   printf("\\f%d%s MODE\\f1", LAYOUT, layout[mode].n);
+}
+
+static void monsterpager(const char *fifo, int fd, int monitor, int desks, int *mode)
+{
+   size_t bytes = 0;
+   int tags = 0, i = 0, co = 0;
+   int mon = 0, amon = 0, d = 0, w = 0, m = 0, c = 0, u = 0;
+   char buffer[256], **data = NULL;
+
+   memset(buffer, 0, sizeof(buffer));
+   while ((bytes = read(fd, buffer, sizeof(buffer)-1)) >= 0)
+   {
+      /* check if eof */
+      if (!bytes) {
+         close(fd);
+         if ((fd = open(fifo, O_RDONLY)) == -1)
+            die("could not reopen fifo\n");
+         break;
+      }
+
+      /* not right kind of data */
+      if (buffer[1] != ':' || buffer[3] != ':' ||
+          buffer[5] != ':' || buffer[7] != ':') {
+         memset(buffer, 0, bytes);
+         printdata();
+         break;
+      }
+
+      /* strsplit */
+      tags = strsplit(&data, buffer, " ");
+      for(i = 0; i != tags; ++i) {
+         /* sscanf data */
+         co = sscanf(data[i], "%d:%d:%d:%d:%d:%d:%d",
+               &mon, &amon, &d, &w, &m, &c, &u);
+         if (mon != monitor) continue;
+         if (co < 7)      break;
+         if (d  >= desks) break;
+
+         /* desktop flags */
+         if (u) desktop[d].urgent = 1;
+         else   desktop[d].urgent = 0;
+         if (c) {
+            desktop[d].current = 1;
+            *mode = m;
+         } else   desktop[d].current = 0;
+         desktop[d].windows = w;
+      }
+
+      printdata();
+      strsplit_clear(&data);
+      break;
+   }
 }
 
 int main(int argc, char **argv)
 {
+   FILE *f;
+   int afds = 1;
+   fd_set rfds;
+   struct timeval tv;
+   struct pollfd fd2[afds];
+   int fd, lfd, rc = 0;
+   int desks = 0, layouts = 0, mode = 0;
+   int monitor = 0, i = 0, cycles = 0;
+   char update = 0;
    snd_mixer_t *alsa; snd_mixer_elem_t *mixer;
+   memset(&fd2, 0, sizeof(fd2));
+
+   /* check args */
+   if (argc < 2)
+      die("usage: %s <fifo> [monitor]\n", argv[0]);
 
    /* init alsa */
    if (!(alsa = alsainit("default")))
@@ -334,13 +471,57 @@ int main(int argc, char **argv)
    /* get mixer */
    if (!(mixer = alsamixer(alsa, "Master")))
       die("Could not get mixer (%s)\n", "Master");
+   /* get fds for select */
+   snd_mixer_poll_descriptors(alsa, fd2, sizeof(fd2));
+
+   if ((f = fopen(argv[1], "r")))
+      fclose(f);
+   else {
+      if (mkfifo(argv[1], 0600) == -1)
+         die("could not  create fifo\n");
+   }
+
+   /* open fifo */
+   if ((fd = open(argv[1], O_RDONLY|O_NONBLOCK)) == -1)
+      die("could not open fifo\n");
+
+   /* assign monitor */
+   if (argc > 2)
+      monitor = strtol(argv[2], (char **) NULL, 10);
+
+   /* count layouts && desks */
+   for (desks = 0; desktop[desks].n;  ++desks) {
+      desktop[desks].current = 0;
+      desktop[desks].urgent  = 0;
+      desktop[desks].windows = 0;
+   }
+   for (layouts = 0; layout[layouts].n; ++layouts);
+
+   /* init */
+   FD_ZERO(&rfds);
 
    /* statusbar itself (pipe to dzen) */
    while (1) {
+      /* left */
+      alignleft();
+      printf(" \\f2|");
+      if (FD_ISSET(fd, &rfds)) {
+         monsterpager(argv[1], fd, monitor, desks, &mode);
+      } else {
+         printdata();
+      }
+      printf("\\f2| ");
+      printlayout(mode<layouts?mode:0);
+
+      /* center */
+      aligncenter();
+
+      /* right */
+      alignright();
       if (printmpd()) whitespace();
-      printcower();
+      printcower(update);
       whitespace();
-      printpacman();
+      printpacman(update);
       whitespace();
       printvolume(mixer);
 #if 0  /* PANDORA */
@@ -352,11 +533,33 @@ int main(int argc, char **argv)
       whitespace();
       eol();
       fflush(stdout);
-      snd_mixer_wait(alsa, SLEEP_INTERVAL);
+
+      FD_ZERO(&rfds);
+      FD_SET((lfd = fd), &rfds);
+      for (i = 0; i != afds; ++i)
+         if (fd2[i].fd) {
+            if (fd2[i].fd > lfd) lfd = fd2[i].fd;
+            FD_SET(fd2[i].fd, &rfds);
+         }
+      tv.tv_sec = SLEEP_INTERVAL/1000;
+      tv.tv_usec = 0;
+      select(lfd + 1, &rfds, NULL, NULL, &tv);
+
+      if (!(update = FD_ISSET(fd, &rfds))){
+         for (i = 0; i != afds; ++i)
+            if (fd2[i].fd && FD_ISSET(fd2[i].fd, &rfds)) {
+               update = 1;
+               break;
+            }
+      }
+      if (!update) cycles = 0;
+      else if (++cycles > 1) usleep(5000);
       snd_mixer_handle_events(alsa);
    }
 
    /* close alsa */
    alsaclose(alsa);
+   close(fd);
+   unlink(argv[1]);
    return EXIT_SUCCESS;
 }

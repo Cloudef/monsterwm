@@ -25,18 +25,18 @@ OBJ = ${SRC:.c=.o}
 
 all: CFLAGS += -Os
 all: LDFLAGS += -s
-all: options ${WMNAME} monsterpager monsterstatus
+all: options ${WMNAME} monsterstatus
 
 debug: CFLAGS += -O0 -g
-debug: options ${WMNAME}
-
-monsterpager:
-	@echo "Building monsterpager"
-	@${CC} 3rdparty/monsterpager.c -o monsterpager
+debug: options ${WMNAME} monsterstatusg
 
 monsterstatus:
 	@echo "Building monsterstatus"
 	@${CC} 3rdparty/monsterstatus.c -lasound -lmpdclient -o monsterstatus
+
+monsterstatusg:
+	@echo "Building monsterstatus (debug)"
+	@${CC} -g 3rdparty/monsterstatus.c -lasound -lmpdclient -o monsterstatus
 
 options:
 	@echo ${WMNAME} build options:
@@ -61,7 +61,6 @@ ${WMNAME}: ${OBJ}
 clean:
 	@echo cleaning
 	@rm -fv ${WMNAME} ${OBJ} ${WMNAME}-${VERSION}.tar.gz
-	@rm monsterpager
 	@rm monsterstatus
 
 install: all
@@ -70,12 +69,11 @@ install: all
 	@echo installing manual page to ${DESTDIR}${MANPREFIX}/man.1
 	@install -Dm644 ${WMNAME}.1 ${DESTDIR}${MANPREFIX}/man1/${WMNAME}.1
 	@echo installing 3rdparty executables
-	@[[ -f monsterpager ]] && install -Dm755 monsterpager ${DESTDIR}${PREFIX}/bin/monsterpager
 	@[[ -f monsterstatus ]] && install -Dm755 monsterstatus ${DESTDIR}${PREFIX}/bin/monsterstatus
 
 uninstall:
 	@echo removing executable file from ${DESTDIR}${PREFIX}/bin
-	@rm -f ${DESTDIR}${PREFIX}/bin/{${WMNAME},monsterpager,monsterstatus}
+	@rm -f ${DESTDIR}${PREFIX}/bin/{${WMNAME},monsterstatus}
 	@echo removing manual page from ${DESTDIR}${MANPREFIX}/man1
 	@rm -f ${DESTDIR}${MANPREFIX}/man1/${WMNAME}.1
 
