@@ -197,7 +197,7 @@ static int mpd_init(void) {
 }
 
 static void mpd_now_playing(void) {
-   char *basec;
+   char *basec = NULL, *based = NULL;
    struct mpd_song *song = mpd_run_current_song(mpd->connection);
    const char *disc    = mpd_song_get_tag(song, MPD_TAG_DISC, 0);
    const char *track   = mpd_song_get_tag(song, MPD_TAG_TRACK, 0);
@@ -210,9 +210,13 @@ static void mpd_now_playing(void) {
    if (!artist) artist = mpd_song_get_tag(song, MPD_TAG_ALBUM_ARTIST, 0);
    if (!artist) artist = mpd_song_get_tag(song, MPD_TAG_COMPOSER, 0);
    if (!artist) artist = mpd_song_get_tag(song, MPD_TAG_PERFORMER, 0);
-   if (!album && (basec = strdup(mpd_song_get_uri(song)))) {
-      album = basename(basec); free(basec);
-   }
+   if (!album && (based = strdup(mpd_song_get_uri(song)))) album = basename(dirname(based));
+   if (!title && (basec = strdup(mpd_song_get_uri(song)))) title = basename(basec);
+
+   /* fallbacks */
+   if (!artist) artist = "noartist";
+   if (!album)  album  = "noalbum";
+   if (!title)  title  = "notitle";
 
    int em, es, dm, ds;
    em = mpd->state.elapsed / 60;
@@ -226,6 +230,9 @@ static void mpd_now_playing(void) {
             MPD_ARTIST_FG, artist, MPD_ALBUM_FG, album, MPD_TITLE_FG, title);
    }
    mpd_song_free(song);
+
+   if (based) free(based);
+   if (basec) free(basec);
 }
 
 static int mpd_update_status(void) {
