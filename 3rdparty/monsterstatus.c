@@ -199,6 +199,7 @@ static int mpd_init(void) {
 static void mpd_now_playing(void) {
    char *basec = NULL, *based = NULL;
    struct mpd_song *song = mpd_run_current_song(mpd->connection);
+   if (!song) return;
    const char *disc    = mpd_song_get_tag(song, MPD_TAG_DISC, 0);
    const char *track   = mpd_song_get_tag(song, MPD_TAG_TRACK, 0);
    const char *comment = mpd_song_get_tag(song, MPD_TAG_COMMENT, 0);
@@ -507,7 +508,7 @@ int main(int argc, char **argv)
    /* init */
    FD_ZERO(&rfds);
 
-   /* statusbar itself (pipe to dzen) */
+   /* statusbar itself (pipe to lemonbar) */
    while (1) {
       /* left */
       alignleft();
