@@ -64,7 +64,7 @@ static desktop_t desktop[] = {
    { .n = "web", .c = DEFAULT },
    { .n = "dev", .c = DEFAULT },
    { .n = "foo", .c = DEFAULT },
-   { .n = "mplayer", .c = DEFAULT },
+   { .n = "mpv", .c = DEFAULT },
    { .n = NULL }
 };
 
