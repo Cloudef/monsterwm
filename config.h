@@ -55,6 +55,7 @@ static const AppRule rules[] = { \
     /*  class     monitor  desktop  follow  float */
     { "MPlayer",     0,       3,    True,   False },
     { "mplayer2",    0,       3,    True,   False },
+    { "mpv",         0,       3,    True,   False },
     { "torrent",     1,       1,    False,  False },
     { "rss",         1,       0,    False,  False },
     { "irc",         1,       0,    False,  False },
