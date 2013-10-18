@@ -23,7 +23,7 @@
 
 enum { RESIZE, MOVE };
 enum { TILE, MONOCLE, BSTACK, GRID, FLOAT, MODES };
-enum { WM_PROTOCOLS, WM_DELETE_WINDOW, WM_COUNT };
+enum { WM_PROTOCOLS, WM_DELETE_WINDOW, UTF8_STRING, WM_COUNT };
 enum { NET_SUPPORTED, NET_FULLSCREEN, NET_WM_STATE, NET_ACTIVE, NET_WM_NAME, NET_COUNT };
 
 /**
@@ -1159,6 +1159,7 @@ void setup(void) {
     /* set up atoms for dialog/notification windows */
     wmatoms[WM_PROTOCOLS]     = XInternAtom(dis, "WM_PROTOCOLS",     False);
     wmatoms[WM_DELETE_WINDOW] = XInternAtom(dis, "WM_DELETE_WINDOW", False);
+    wmatoms[UTF8_STRING]      = XInternAtom(dis, "UTF8_STRING", False);
     netatoms[NET_SUPPORTED]   = XInternAtom(dis, "_NET_SUPPORTED",   False);
     netatoms[NET_WM_STATE]    = XInternAtom(dis, "_NET_WM_STATE",    False);
     netatoms[NET_ACTIVE]      = XInternAtom(dis, "_NET_ACTIVE_WINDOW",       False);
@@ -1203,10 +1204,13 @@ static Bool gettextprop(Window w, Atom atom, char *text, size_t size) {
     text[0] = 0;
     XGetTextProperty(dis, w, &name, atom);
     if (!name.nitems) return False;
-    if (name.encoding == XA_STRING)
+    if (name.encoding == XA_STRING || name.encoding == wmatoms[UTF8_STRING]) {
        strncpy(text, (char*)name.value, size-1);
-    else {
-       if (XmbTextPropertyToTextList(dis, &name, &list, &n) >= Success && n > 0 && *list) {
+    } else {
+       if (Xutf8TextPropertyToTextList(dis, &name, &list, &n) >= Success && n > 0 && *list) {
+          strncpy(text, *list, size-1);
+          XFreeStringList(list);
+       } else if (XmbTextPropertyToTextList(dis, &name, &list, &n) >= Success && n > 0 && *list) {
           strncpy(text, *list, size-1);
           XFreeStringList(list);
        }
