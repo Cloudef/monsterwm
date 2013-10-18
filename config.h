@@ -84,6 +84,8 @@ static const char *mpdtoggle[]   = { "lolimpd", "toggle", NULL };
 static const char *mpdnext[]     = { "lolimpd", "next", NULL };
 static const char *mpdprev[]     = { "lolimpd", "prev", NULL };
 static const char *lolimpd[]     = { "lolimpdnu", NULL };
+static const char *anime[]       = { "anime", NULL };
+static const char *mvanime[]     = { "mvanime", NULL };
 
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
@@ -168,6 +170,8 @@ static Key keys[] = {
     { MOD4,              XK_Home,       spawn,             {.v = mpdprev   } },
     { MOD4,              XK_End,        spawn,             {.v = mpdnext   } },
     { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
+    { MOD4,              XK_a,          spawn,             {.v = anime     } },
+    { MOD4|SHIFT,        XK_a,          spawn,             {.v = mvanime   } },
     { MOD4,              XK_F12,        togglefullscreen,  {NULL}},
 };
 
