@@ -77,7 +77,7 @@ typedef struct {
     const char *class;
     const int monitor;
     const int desktop;
-    const Bool follow, floating;
+    const Bool follow, floating, fullscrn;
 } AppRule;
 
 
@@ -787,20 +787,21 @@ void maprequest(XEvent *e) {
     if (wintoclient(w, &c, &d, &m) || (XGetWindowAttributes(dis, w, &wa) && wa.override_redirect)) return;
 
     XClassHint ch = {0, 0};
-    Bool follow = False, floating = False;
+    Bool follow = False, floating = False, fullscrn = False;
     int newmon = currmonidx, newdsk = monitors[currmonidx].currdeskidx;
 
     if (XGetClassHint(dis, w, &ch)) for (unsigned int i = 0; i < LENGTH(rules); i++)
         if (strstr(ch.res_class, rules[i].class) || strstr(ch.res_name, rules[i].class)) {
             if (rules[i].monitor >= 0 && rules[i].monitor < nmonitors) newmon = rules[i].monitor;
             if (rules[i].desktop >= 0 && rules[i].desktop < DESKTOPS) newdsk = rules[i].desktop;
-            follow = rules[i].follow, floating = rules[i].floating;
+            follow = rules[i].follow, floating = rules[i].floating, fullscrn = rules[i].fullscrn;
             break;
         }
     if (ch.res_class) XFree(ch.res_class);
     if (ch.res_name) XFree(ch.res_name);
 
     c = addwindow(w, (d = &(m = &monitors[newmon])->desktops[newdsk])); /* from now on, use c->win */
+    c->isfull = fullscrn;
     c->istrans = XGetTransientForHint(dis, c->win, &w);
     if ((c->isfloat = (floating || d->mode == FLOAT)) && !c->istrans)
         MV(c, m->x + (m->w - wa.width)/2, m->y + (m->h - wa.height)/2);

@@ -17,12 +17,12 @@
 #define DEFAULT_MODE    TILE      /* initial layout/mode: TILE MONOCLE BSTACK GRID FLOAT */
 #define ATTACH_ASIDE    True      /* False means new window is master */
 #define FOLLOW_WINDOW   False     /* follow the window when moved to a different desktop */
-#define FOLLOW_MONITOR  False     /* follow the window when moved to a different monitor */
+#define FOLLOW_MONITOR  True      /* follow the window when moved to a different monitor */
 #define FOLLOW_MOUSE    False     /* focus the window the mouse just entered */
 #define CLICK_TO_FOCUS  True      /* focus an unfocused window when clicked  */
-#define FOCUS_BUTTON    Button3   /* mouse button to be used along with CLICK_TO_FOCUS */
+#define FOCUS_BUTTON    Button1   /* mouse button to be used along with CLICK_TO_FOCUS */
 #define BORDER_WIDTH    2         /* window border width */
-#define FOCUS           "#ff950e" /* focused window border color   */
+#define FOCUS           "#F92672" /* focused window border color   */
 #define UNFOCUS         "#444444" /* unfocused window border color */
 #define INFOCUS         "#9c3885" /* focused window border color on unfocused monitor */
 #define MINWSZ          50        /* minimum window size in pixels */
@@ -41,8 +41,8 @@ static const int monitor2[] = { BSTACK, BSTACK, BSTACK, BSTACK, -1 };
  */
 static const MonitorCfg monitorcfg[] = {
     /* show panel, layouts */
-    { TRUE,  monitor1 },
-    { FALSE, monitor2 },
+    { True,  monitor1 },
+    { False, monitor2 },
 };
 
 /**
@@ -52,24 +52,27 @@ static const MonitorCfg monitorcfg[] = {
  * if desktop is negative, then current is assumed
  */
 static const AppRule rules[] = { \
-    /*  class     monitor  desktop  follow  float */
-    { "MPlayer",     0,       3,    True,   False },
-    { "mplayer2",    0,       3,    True,   False },
-    { "torrent",     1,       1,    False,  False },
-    { "rss",         1,       0,    False,  False },
-    { "irc",         1,       0,    False,  False },
-    { "dwb",         0,       0,    False,  False },
-    { "Oblogout",    0 ,     -1,    True,   True  },
-    { "qurxvt",      0,      -1,    True,   True  },
+    /*  class     monitor  desktop  follow  float  fullscrn */
+    { "MPlayer",     0,       3,    True,   False,  False },
+    { "mplayer2",    0,       3,    True,   False,  False },
+    { "mpv",         0,       3,    True,   False,  False },
+    { "torrent",     1,       1,    False,  False,  False },
+    { "rss",         1,       0,    False,  False,  False },
+    { "irc",         1,       0,    False,  False,  False },
+    { "dwb",         0,       0,    False,  False,  False },
+    { "Oblogout",    0 ,     -1,    True,   False,  True  },
+    { "qtermite",    0,      -1,    True,   True,   False  },
+    { "stalonetray", 0,      -1,    False,  True,   False  },
 };
 
 /* helper for spawning shell commands */
 #define SHCMD(cmd) {.com = (const char*[]){"/bin/sh", "-c", cmd, NULL}}
 
 /** commands **/
-static const char *termcmd[]     = { "curxvt",           NULL };
+static const char *termcmd[]     = { "termite",          NULL };
 static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
-static const char *urxvtq[]      = { "qurxvt",           NULL };
+static const char *qtermite[]    = { "qtermite",         NULL };
+static const char *trayd[]       = { "stalonetrayd",     NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
 static const char *svolminus[]   = { "svol", "-d", "1",  NULL };
 static const char *svolplus[]    = { "svol", "-i", "1",  NULL };
@@ -78,7 +81,12 @@ static const char *loliclip[]    = { "lolictrl",         NULL };
 static const char *lolicurl[]    = { "lolictrl", "-u",   NULL };
 static const char *lolisync[]    = { "lolictrl", "-spc", NULL };
 static const char *mpdtoggle[]   = { "lolimpd", "toggle", NULL };
+static const char *mpdnext[]     = { "lolimpd", "next", NULL };
+static const char *mpdprev[]     = { "lolimpd", "prev", NULL };
 static const char *lolimpd[]     = { "lolimpdnu", NULL };
+static const char *anime[]       = { "anime", NULL };
+static const char *anime_l[]     = { "anime", "l", NULL };
+static const char *mvanime[]     = { "mvanime", NULL };
 
 #define STR_EXPAND(tok) #tok
 #define STR(tok) STR_EXPAND(tok)
@@ -103,39 +111,40 @@ static const char *lolimpd[]     = { "lolimpdnu", NULL };
  */
 static Key keys[] = {
     /* modifier          key            function           argument */
-    {  MOD1,             XK_b,          togglepanel,       {NULL}},
-    {  MOD1,             XK_BackSpace,  focusurgent,       {NULL}},
-    {  MOD1|SHIFT,       XK_c,          killclient,        {NULL}},
-    {  MOD1,             XK_j,          next_win,          {NULL}},
-    {  MOD1,             XK_k,          prev_win,          {NULL}},
-    {  MOD1,             XK_h,          resize_master,     {.i = -10}}, /* decrease size in px */
-    {  MOD1,             XK_l,          resize_master,     {.i = +10}}, /* increase size in px */
-    {  MOD1,             XK_o,          resize_stack,      {.i = -10}}, /* shrink   size in px */
-    {  MOD1,             XK_p,          resize_stack,      {.i = +10}}, /* grow     size in px */
-    {  MOD1|CONTROL,     XK_h,          rotate,            {.i = -1}},
-    {  MOD1|CONTROL,     XK_l,          rotate,            {.i = +1}},
-    {  MOD1|SHIFT,       XK_h,          rotate_filled,     {.i = -1}},
-    {  MOD1|SHIFT,       XK_l,          rotate_filled,     {.i = +1}},
-    {  MOD1,             XK_Tab,        last_desktop,      {NULL}},
-    {  MOD1,             XK_Return,     swap_master,       {NULL}},
-    {  MOD1|SHIFT,       XK_j,          move_down,         {NULL}},
-    {  MOD1|SHIFT,       XK_k,          move_up,           {NULL}},
-    {  MOD1|SHIFT,       XK_t,          switch_mode,       {.i = TILE}},
-    {  MOD1|SHIFT,       XK_m,          switch_mode,       {.i = MONOCLE}},
-    {  MOD1|SHIFT,       XK_b,          switch_mode,       {.i = BSTACK}},
-    {  MOD1|SHIFT,       XK_g,          switch_mode,       {.i = GRID}},
-    {  MOD1|SHIFT,       XK_f,          switch_mode,       {.i = FLOAT}},
-    {  MOD1|CONTROL,     XK_r,          quit,              {.i = 0}}, /* quit with exit value 0 */
-    {  MOD1|CONTROL,     XK_q,          quit,              {.i = 1}}, /* quit with exit value 1 */
-    {  MOD1|SHIFT,       XK_Return,     spawn,             {.com = termcmd}},
-    {  MOD4,             XK_j,          moveresize,        {.v = (int []){   0,  25,   0,   0 }}}, /* move down  */
-    {  MOD4,             XK_k,          moveresize,        {.v = (int []){   0, -25,   0,   0 }}}, /* move up    */
-    {  MOD4,             XK_l,          moveresize,        {.v = (int []){  25,   0,   0,   0 }}}, /* move right */
-    {  MOD4,             XK_h,          moveresize,        {.v = (int []){ -25,   0,   0,   0 }}}, /* move left  */
-    {  MOD4|SHIFT,       XK_j,          moveresize,        {.v = (int []){   0,   0,   0,  25 }}}, /* height grow   */
-    {  MOD4|SHIFT,       XK_k,          moveresize,        {.v = (int []){   0,   0,   0, -25 }}}, /* height shrink */
-    {  MOD4|SHIFT,       XK_l,          moveresize,        {.v = (int []){   0,   0,  25,   0 }}}, /* width grow    */
-    {  MOD4|SHIFT,       XK_h,          moveresize,        {.v = (int []){   0,   0, -25,   0 }}}, /* width shrink  */
+    {  MOD4,             XK_b,          togglepanel,       {NULL}},
+    {  MOD4,             XK_BackSpace,  focusurgent,       {NULL}},
+    {  MOD4,             XK_q,          killclient,        {NULL}},
+    {  MOD4,             XK_j,          next_win,          {NULL}},
+    {  MOD4,             XK_k,          prev_win,          {NULL}},
+    {  MOD4,             XK_h,          resize_master,     {.i = -10}}, /* decrease size in px */
+    {  MOD4,             XK_l,          resize_master,     {.i = +10}}, /* increase size in px */
+    {  MOD4,             XK_u,          resize_stack,      {.i = -10}}, /* shrink   size in px */
+    {  MOD4,             XK_i,          resize_stack,      {.i = +10}}, /* grow     size in px */
+    {  MOD4|CONTROL,     XK_h,          rotate,            {.i = -1}},
+    {  MOD4|CONTROL,     XK_l,          rotate,            {.i = +1}},
+    {  MOD4|SHIFT,       XK_h,          rotate_filled,     {.i = -1}},
+    {  MOD4|SHIFT,       XK_l,          rotate_filled,     {.i = +1}},
+    {  MOD4,             XK_Tab,        last_desktop,      {NULL}},
+    {  MOD4,             XK_Return,     swap_master,       {NULL}},
+    {  MOD4|SHIFT,       XK_j,          move_down,         {NULL}},
+    {  MOD4|SHIFT,       XK_k,          move_up,           {NULL}},
+    {  MOD4|SHIFT,       XK_t,          switch_mode,       {.i = TILE}},
+    {  MOD4|SHIFT,       XK_m,          switch_mode,       {.i = MONOCLE}},
+    {  MOD4|SHIFT,       XK_b,          switch_mode,       {.i = BSTACK}},
+    {  MOD4|SHIFT,       XK_g,          switch_mode,       {.i = GRID}},
+    {  MOD4|SHIFT,       XK_f,          switch_mode,       {.i = FLOAT}},
+    {  MOD4|CONTROL,     XK_r,          quit,              {.i = 0}}, /* quit with exit value 0 */
+    {  MOD4|CONTROL,     XK_q,          quit,              {.i = 1}}, /* quit with exit value 1 */
+    {  MOD4|SHIFT,       XK_Return,     spawn,             {.com = termcmd}},
+    {  MOD4,             XK_p,          spawn,             {.com = menucmd}},
+    {  MOD4,             XK_Down,       moveresize,        {.v = (int []){   0,  25,   0,   0 }}}, /* move up    */
+    {  MOD4,             XK_Up,         moveresize,        {.v = (int []){   0, -25,   0,   0 }}}, /* move down  */
+    {  MOD4,             XK_Right,      moveresize,        {.v = (int []){  25,   0,   0,   0 }}}, /* move right */
+    {  MOD4,             XK_Left,       moveresize,        {.v = (int []){ -25,   0,   0,   0 }}}, /* move left  */
+    {  MOD4|SHIFT,       XK_Down,       moveresize,        {.v = (int []){   0,   0,   0,  25 }}}, /* height grow   */
+    {  MOD4|SHIFT,       XK_Up,         moveresize,        {.v = (int []){   0,   0,   0, -25 }}}, /* height shrink */
+    {  MOD4|SHIFT,       XK_Right,      moveresize,        {.v = (int []){   0,   0,  25,   0 }}}, /* width grow    */
+    {  MOD4|SHIFT,       XK_Left,       moveresize,        {.v = (int []){   0,   0, -25,   0 }}}, /* width shrink  */
        DESKTOPCHANGE(    XK_F1,                             0)
        DESKTOPCHANGE(    XK_F2,                             1)
        DESKTOPCHANGE(    XK_F3,                             2)
@@ -152,13 +161,19 @@ static Key keys[] = {
     { MOD4,              XK_Page_Down,  spawn,             {.v = svolminus } },
     { MOD4,              XK_Page_Up,    spawn,             {.v = svolplus  } },
     { MOD4|CONTROL,      XK_m,          spawn,             {.v = svolmute  } },
-    { 0,                 XK_section,    spawn,             {.v = urxvtq    } },
+    { 0,                 XK_section,    spawn,             {.v = qtermite  } },
+    { MOD4,              XK_t,          spawn,             {.v = trayd     } },
     { MOD4,              XK_Escape,     spawn,             {.v = oblogout  } },
     { MOD4,              XK_c,          spawn,             {.v = loliclip  } },
     { MOD4|SHIFT,        XK_c,          spawn,             {.v = lolicurl  } },
     { MOD1|SHIFT,        XK_c,          spawn,             {.v = lolisync  } },
     { 0,                 XK_Pause,      spawn,             {.v = mpdtoggle } },
+    { MOD4,              XK_Home,       spawn,             {.v = mpdprev   } },
+    { MOD4,              XK_End,        spawn,             {.v = mpdnext   } },
     { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
+    { MOD4,              XK_a,          spawn,             {.v = anime     } },
+    { MOD4|SHIFT,        XK_a,          spawn,             {.v = anime_l   } },
+    { MOD4|CONTROL,      XK_a,          spawn,             {.v = mvanime   } },
     { MOD4,              XK_F12,        togglefullscreen,  {NULL}},
 };
 

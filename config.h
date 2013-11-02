@@ -52,17 +52,17 @@ static const MonitorCfg monitorcfg[] = {
  * if desktop is negative, then current is assumed
  */
 static const AppRule rules[] = { \
-    /*  class     monitor  desktop  follow  float */
-    { "MPlayer",     0,       3,    True,   False },
-    { "mplayer2",    0,       3,    True,   False },
-    { "mpv",         0,       3,    True,   False },
-    { "torrent",     1,       1,    False,  False },
-    { "rss",         1,       0,    False,  False },
-    { "irc",         1,       0,    False,  False },
-    { "dwb",         0,       0,    False,  False },
-    { "Oblogout",    0 ,     -1,    True,   False  },
-    { "qtermite",    0,      -1,    True,   True  },
-    { "stalonetray", 0,      -1,    False,  True  },
+    /*  class     monitor  desktop  follow  float  fullscrn */
+    { "MPlayer",     0,       3,    True,   False,  False },
+    { "mplayer2",    0,       3,    True,   False,  False },
+    { "mpv",         0,       3,    True,   False,  False },
+    { "torrent",     1,       1,    False,  False,  False },
+    { "rss",         1,       0,    False,  False,  False },
+    { "irc",         1,       0,    False,  False,  False },
+    { "dwb",         0,       0,    False,  False,  False },
+    { "Oblogout",    0 ,     -1,    True,   False,  True  },
+    { "qtermite",    0,      -1,    True,   True,   False  },
+    { "stalonetray", 0,      -1,    False,  True,   False  },
 };
 
 /* helper for spawning shell commands */
@@ -85,6 +85,7 @@ static const char *mpdnext[]     = { "lolimpd", "next", NULL };
 static const char *mpdprev[]     = { "lolimpd", "prev", NULL };
 static const char *lolimpd[]     = { "lolimpdnu", NULL };
 static const char *anime[]       = { "anime", NULL };
+static const char *anime_l[]     = { "anime", "l", NULL };
 static const char *mvanime[]     = { "mvanime", NULL };
 
 #define STR_EXPAND(tok) #tok
@@ -171,7 +172,8 @@ static Key keys[] = {
     { MOD4,              XK_End,        spawn,             {.v = mpdnext   } },
     { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
     { MOD4,              XK_a,          spawn,             {.v = anime     } },
-    { MOD4|SHIFT,        XK_a,          spawn,             {.v = mvanime   } },
+    { MOD4|SHIFT,        XK_a,          spawn,             {.v = anime_l   } },
+    { MOD4|CONTROL,      XK_a,          spawn,             {.v = mvanime   } },
     { MOD4,              XK_F12,        togglefullscreen,  {NULL}},
 };
 
