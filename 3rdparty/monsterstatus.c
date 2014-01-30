@@ -18,22 +18,21 @@
 
 #define DEFAULT      1
 #define LAYOUT       8
-#define WINDOWS      7
 
-#define VOL_FG          7
+#define VOL_FG          5
 
-#define DATE_SEP        "\\f5>\\f3>"
-#define DATE_FG         8
-#define TIME_FG         8
+#define DATE_SEP        "\\f9>\\f3>"
+#define DATE_FG         7
+#define TIME_FG         7
 
-#define UPDATE_FG       4
-#define COWER_FG        5
+#define UPDATE_FG       2
+#define COWER_FG        3
 
-#define MPD_TIME        "\\f3%d:%.2d \\f1| \\f3%d:%.2d\\f5"
-#define MPD_SEP         "\\f5>\\f3>"
-#define MPD_ARTIST_FG   1
-#define MPD_ALBUM_FG    1
-#define MPD_TITLE_FG    1
+#define MPD_TIME        "\\f3%d:%.2d \\f1/ \\f3%d:%.2d\\f5"
+#define MPD_SEP         "\\f9>\\f3>"
+#define MPD_ARTIST_FG   7
+#define MPD_ALBUM_FG    7
+#define MPD_TITLE_FG    7
 
 #define BAT_ROOT     "/sys/class/power_supply/bq27500-0"
 #define BAT_CHARGE   "capacity"
@@ -61,10 +60,10 @@ typedef struct layout_t {
 } layout_t;
 
 static desktop_t desktop[] = {
-   { .n = "web", .c = DEFAULT },
-   { .n = "dev", .c = DEFAULT },
-   { .n = "foo", .c = DEFAULT },
-   { .n = "mpv", .c = DEFAULT },
+   { .n = "WEB", .c = DEFAULT },
+   { .n = "DEV", .c = DEFAULT },
+   { .n = "FOO", .c = DEFAULT },
+   { .n = "MPV", .c = DEFAULT },
    { .n = NULL }
 };
 
@@ -387,13 +386,12 @@ static void printdata()
    for (i = 0; desktop[i].n; ++i) {
       color = desktop[i].c;
       if (desktop[i].current)
-        printf("\\f9\\u3\\b2 ");
+        printf("\\f9\\u9\\b0 ");
       else if (desktop[i].urgent)
-        printf("\\f9\\u4\\b2 ");
+        printf("\\f9\\u3\\b0 ");
       else printf("\\f9\\u0\\b0 ");
 
       printf("%s", desktop[i].n);
-      if (desktop[i].windows) printf(" \\f%d[%d]", WINDOWS, desktop[i].windows);
       printf(" \\u0\\b0");
    }
 }
@@ -512,7 +510,8 @@ int main(int argc, char **argv)
    while (1) {
       /* left */
       alignleft();
-      printf(" \\f2|");
+      //printf(" \\f2|");
+      printf(" ");
       if (FD_ISSET(fd, &rfds)) {
          monsterpager(argv[1], fd, monitor, desks, &mode);
       } else {
@@ -538,7 +537,7 @@ int main(int argc, char **argv)
 #endif
       whitespace();
       printdate();
-      whitespace();
+      printf(" ");
       eol();
       fflush(stdout);
 
