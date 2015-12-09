@@ -3,6 +3,8 @@
 #ifndef CONFIG_H
 #define CONFIG_H
 
+#include <X11/XF86keysym.h>
+
 /** modifiers **/
 #define MOD1            Mod1Mask    /* ALT key */
 #define MOD4            Mod4Mask    /* Super/Windows key */
@@ -158,19 +160,19 @@ static Key keys[] = {
 
     { 0,                 XK_Print,      spawn,             SHCMD(PRNTF) },
     { MOD1,              XK_Print,      spawn,             SHCMD(PRNTW) },
-    { MOD4,              XK_Page_Down,  spawn,             {.v = svolminus } },
-    { MOD4,              XK_Page_Up,    spawn,             {.v = svolplus  } },
-    { MOD4|CONTROL,      XK_m,          spawn,             {.v = svolmute  } },
+    { 0,                 XF86XK_AudioLowerVolume,  spawn,  {.v = svolminus } },
+    { 0,                 XF86XK_AudioRaiseVolume,  spawn,  {.v = svolplus  } },
+    { 0,                 XF86XK_AudioMute, spawn,          {.v = svolmute  } },
     { 0,                 XK_section,    spawn,             {.v = qtermite  } },
     { MOD4,              XK_t,          spawn,             {.v = trayd     } },
     { MOD4,              XK_Escape,     spawn,             {.v = oblogout  } },
     { MOD4,              XK_c,          spawn,             {.v = xcmenuctrl  } },
     { MOD4|SHIFT,        XK_c,          spawn,             {.v = xcmenucurl  } },
     { MOD1|SHIFT,        XK_c,          spawn,             {.v = xcmenusync  } },
-    { 0,                 XK_Pause,      spawn,             {.v = mpdtoggle } },
-    { MOD4,              XK_Home,       spawn,             {.v = mpdprev   } },
-    { MOD4,              XK_End,        spawn,             {.v = mpdnext   } },
-    { MOD4,              XK_m,          spawn,             {.v = lolimpd   } },
+    { 0,                 XF86XK_AudioPlay, spawn,          {.v = mpdtoggle } },
+    { 0,                 XF86XK_AudioPrev, spawn,          {.v = mpdprev   } },
+    { 0,                 XF86XK_AudioNext, spawn,          {.v = mpdnext   } },
+    { 0,                 XF86XK_Sleep,     spawn,          {.v = lolimpd   } },
     { MOD4,              XK_a,          spawn,             {.v = anime     } },
     { MOD4|SHIFT,        XK_a,          spawn,             {.v = anime_l   } },
     { MOD4|CONTROL,      XK_a,          spawn,             {.v = mvanime   } },
