@@ -72,7 +72,7 @@ static const AppRule rules[] = { \
 
 /** commands **/
 static const char *termcmd[]     = { "termite",          NULL };
-static const char *menucmd[]     = { "dmenu_run", "-p", "monsterwm", NULL };
+static const char *menucmd[]     = { "bemenu-run", "-p", "monsterwm", NULL };
 static const char *qtermite[]    = { "qtermite",         NULL };
 static const char *trayd[]       = { "stalonetrayd",     NULL };
 static const char *oblogout[]    = { "oblogout",         NULL };
