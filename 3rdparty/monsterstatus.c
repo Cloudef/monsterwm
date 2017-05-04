@@ -165,13 +165,18 @@ static void strsplit_clear(char ***dst) {
 }
 
 static void mpd_quit(void) {
-   assert(mpd);
-   if (mpd->connection) mpd_connection_free(mpd->connection);
+   if (!mpd)
+      return;
+
    if (mpd->status)     mpd_status_free(mpd->status);
-   free(mpd); mpd = NULL;
+   if (mpd->connection) mpd_connection_free(mpd->connection);
+   free(mpd);
 }
 
 static int mpd_init(void) {
+   if (mpd && mpd_connection_get_error(mpd->connection) == MPD_ERROR_SUCCESS)
+      return 1;
+
    unsigned int mpd_port = 6600;
    const char *host = getenv("MPD_HOST");
    const char *port = getenv("MPD_PORT");
@@ -180,10 +185,10 @@ static int mpd_init(void) {
    if (!host)  host     = "localhost";
    if (port)   mpd_port = strtol(port, (char**) NULL, 10);
 
-   if (mpd) mpd_quit();
-   if (!(mpd = malloc(sizeof(mpdclient))))
+   mpd_quit();
+
+   if (!(mpd = calloc(1, sizeof(mpdclient))))
       die("mpdclient allocation failed");
-   memset(mpd, 0, sizeof(mpdclient));
 
    if (!(mpd->connection = mpd_connection_new(host, mpd_port, MPD_TIMEOUT)) ||
          mpd_connection_get_error(mpd->connection))
@@ -192,7 +197,7 @@ static int mpd_init(void) {
    if (pass && !mpd_run_password(mpd->connection, pass))
       return 0;
 
-   return 1;
+   return (mpd_connection_get_error(mpd->connection) == MPD_ERROR_SUCCESS);
 }
 
 static void mpd_now_playing(void) {
@@ -230,15 +235,14 @@ static void mpd_now_playing(void) {
             MPD_ARTIST_FG, artist, MPD_ALBUM_FG, album, MPD_TITLE_FG, title);
    }
    mpd_song_free(song);
-
-   if (based) free(based);
-   if (basec) free(basec);
+   free(based);
+   free(basec);
 }
 
 static int mpd_update_status(void) {
-   if (mpd->status)    mpd_status_free(mpd->status);
+   if (mpd->status) mpd_status_free(mpd->status);
    if (!(mpd->status = mpd_run_status(mpd->connection)))
-      die("mpd_run_status failed");
+      return -1;
 
    mpd->state.id        = mpd_status_get_update_id(mpd->status);
    mpd->state.volume    = mpd_status_get_volume(mpd->status);
@@ -281,19 +285,18 @@ static snd_mixer_elem_t* alsamixer(snd_mixer_t *handle, const char *mixer)
 {
    snd_mixer_selem_id_t *sid;
    snd_mixer_selem_id_alloca(&sid);
-   snd_mixer_selem_id_set_index(sid, 0);
    snd_mixer_selem_id_set_name(sid, mixer);
    return snd_mixer_find_selem(handle, sid);
 }
 
 int getvolume(snd_mixer_elem_t *mixer)
 {
-   long volume, min, max;
-   int mute;
+   int active = 1;
+   long volume = 0, min = 0, max = 0;
    snd_mixer_selem_get_playback_volume_range(mixer, &min, &max);
    snd_mixer_selem_get_playback_volume(mixer, SND_MIXER_SCHN_MONO, &volume);
-   snd_mixer_selem_get_playback_switch(mixer, SND_MIXER_SCHN_MONO, &mute);
-   return !mute?0:volume>min?volume<max?(volume*100)/max:100:0;
+   snd_mixer_selem_get_playback_switch(mixer, SND_MIXER_SCHN_MONO, &active);
+   return !active?0:volume>min?volume<max?(volume*100)/max:100:0;
 }
 
 static int batterystate(char *buffer)
@@ -319,7 +322,6 @@ static int batterycharge(int *charge)
 static int printmpd() {
    if (mpd_init() && mpd_update_status() != -1) {
       mpd_now_playing();
-      mpd_quit();
       return 1;
    }
    return 0;
@@ -331,7 +333,7 @@ static void printpacman(int update) {
 
    if (!update && --times==0) {
       execget("pacup -u 2>/dev/null | wc -l", buffer, 5);
-      times = 15;
+      times = 60 * 60;
    }
 
    printf("\\f%d%s\\f1", UPDATE_FG, buffer);
@@ -343,16 +345,14 @@ static void printcower(int update) {
 
    if (!update && --times==0) {
       execget("cower -u 2>/dev/null | wc -l", buffer, 5);
-      times = 15;
+      times = 60 * 60;
    }
 
    printf("\\f%d%s\\f1", COWER_FG, buffer);
 }
 
 static void printvolume(snd_mixer_elem_t *mixer) {
-   int volume;
-   volume = getvolume(mixer);
-   printf("\\f%d%3d%%\\f1", VOL_FG, volume);
+   printf("\\f%d%3d%%\\f1", VOL_FG, getvolume(mixer));
 }
 
 static void printbattery() {
@@ -564,7 +564,7 @@ int main(int argc, char **argv)
       snd_mixer_handle_events(alsa);
    }
 
-   /* close alsa */
+   mpd_quit();
    alsaclose(alsa);
    close(fd);
    unlink(argv[1]);
